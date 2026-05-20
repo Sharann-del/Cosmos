@@ -1,3 +1,8 @@
 .env
 __pycache__/
 *.pyc
+target/
+cosmos-web/node_modules/
+cosmos-web/.next/
+cosmos-web/dist/
+.cosmos/
