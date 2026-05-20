@@ -1,8 +1,33 @@
+# ── secrets & env ─────────────────────────────────────────────────────────────
 .env
+.env.*
+!.env.example
+
+# ── Python ────────────────────────────────────────────────────────────────────
 __pycache__/
-*.pyc
+*.py[cod]
+.venv/
+venv/
+
+# ── Rust ──────────────────────────────────────────────────────────────────────
 target/
+
+# ── Next.js / Node ────────────────────────────────────────────────────────────
 cosmos-web/node_modules/
 cosmos-web/.next/
+cosmos-web/out/
 cosmos-web/dist/
+cosmos-web/.env.local
+cosmos-web/.env.*.local
+
+# ── Supabase local dev ────────────────────────────────────────────────────────
+supabase/.temp/
+supabase/.branches/
+
+# ── OS & editor ───────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+
+# ── Cosmos app config (lives in home dir, not repo) ───────────────────────────
 .cosmos/
