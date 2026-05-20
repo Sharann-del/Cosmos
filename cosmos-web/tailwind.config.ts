@@ -9,17 +9,10 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: [
-          "ui-monospace",
-          "SFMono-Regular",
-          "Menlo",
-          "Monaco",
-          "Consolas",
-          "Liberation Mono",
-          "Courier New",
-          "monospace",
-        ],
+        gloock: ["var(--font-gloock)", "serif"],
+        crimson: ["var(--font-crimson)", "serif"],
         mono: [
+          "var(--font-jetbrains)",
           "ui-monospace",
           "SFMono-Regular",
           "Menlo",

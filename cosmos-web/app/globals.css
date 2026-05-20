@@ -37,3 +37,100 @@ body {
 ::-webkit-scrollbar-thumb {
   background: #2a2a2a;
 }
+
+/* ── scanlines ────────────────────────────────────────────────────────────── */
+@keyframes scanlines {
+  0%   { background-position: 0 0; }
+  100% { background-position: 0 4px; }
+}
+
+.scanline-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 3px,
+    rgba(0, 0, 0, 0.05) 3px,
+    rgba(0, 0, 0, 0.05) 4px
+  );
+  animation: scanlines 0.12s linear infinite;
+}
+
+/* ── glitch button ────────────────────────────────────────────────────────── */
+@keyframes glitch-r {
+  0%, 88%, 100% { clip-path: none; transform: none; opacity: 1; }
+  90% { clip-path: inset(15% 0 65% 0); transform: translateX(3px); opacity: 0.75; }
+  92% { clip-path: inset(55% 0 15% 0); transform: translateX(-3px); opacity: 0.75; }
+  94% { clip-path: inset(35% 0 45% 0); transform: translateX(2px); opacity: 0.85; }
+}
+
+@keyframes glitch-b {
+  0%, 88%, 100% { clip-path: none; transform: none; opacity: 0; }
+  90% { clip-path: inset(15% 0 65% 0); transform: translateX(-3px); opacity: 0.35; }
+  92% { clip-path: inset(55% 0 15% 0); transform: translateX(3px);  opacity: 0.35; }
+  94% { clip-path: inset(35% 0 45% 0); transform: translateX(-2px); opacity: 0.25; }
+}
+
+.glitch-btn {
+  position: relative;
+  isolation: isolate;
+}
+.glitch-btn::before,
+.glitch-btn::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: inherit;
+  font-family: inherit;
+  letter-spacing: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.glitch-btn::before {
+  color: #d4714a;
+  animation: glitch-r 5s infinite;
+}
+.glitch-btn::after {
+  color: #4a6ed4;
+  animation: glitch-b 5s infinite;
+}
+
+/* ── scroll cue ───────────────────────────────────────────────────────────── */
+@keyframes scrollPulse {
+  0%, 100% { opacity: 0.18; transform: scaleY(1);    }
+  50%       { opacity: 0.5;  transform: scaleY(1.15); }
+}
+
+/* ── feature card reveal ──────────────────────────────────────────────────── */
+.card-hidden {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.55s cubic-bezier(0.16,1,0.3,1),
+              transform 0.55s cubic-bezier(0.16,1,0.3,1);
+}
+.card-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── misc ─────────────────────────────────────────────────────────────────── */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}

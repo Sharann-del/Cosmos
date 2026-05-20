@@ -1763,15 +1763,22 @@ class SidebarEntryRow(Horizontal):
     SidebarEntryRow #entry-rename {
         display: none;
         width: 1fr;
+        min-width: 0;
         height: 1;
         padding: 0 1;
         border: none;
         background: #1a1a1a;
         color: #eeeeee;
+        overflow-x: hidden;
+        scrollbar-size-horizontal: 0;
+        scrollbar-size-vertical: 0;
     }
     SidebarEntryRow #entry-rename:focus {
         background: #252525;
         border: none;
+    }
+    SidebarEntryRow.-renaming {
+        overflow-x: hidden;
     }
     SidebarEntryRow.-renaming #entry-title {
         display: none;
