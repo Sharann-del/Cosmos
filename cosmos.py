@@ -970,6 +970,110 @@ class NamePromptScreen(ModalScreen[str | None]):
             self.dismiss(None)
 
 
+# ── api key setup screen ───────────────────────────────────────────────────────
+
+class ApiKeyScreen(ModalScreen[str | None]):
+    """Modal shown when no OpenRouter API key is configured."""
+
+    CSS = """
+    ApiKeyScreen {
+        background: #000000 60%;
+        align: center middle;
+    }
+    #apikey-box {
+        width: 52;
+        height: auto;
+        background: #0e0e0e;
+        border: solid #2a2a2a;
+        padding: 2 3;
+    }
+    #apikey-title {
+        color: #ffffff;
+        text-style: bold;
+        width: 100%;
+        margin-bottom: 1;
+    }
+    #apikey-sub {
+        color: #555555;
+        width: 100%;
+        margin-bottom: 1;
+    }
+    #apikey-input {
+        background: #1a1a1a;
+        color: #d0d0d0;
+        border: none;
+        width: 100%;
+        margin-bottom: 1;
+    }
+    #apikey-input:focus { background: #222222; border: none; }
+    #apikey-actions {
+        width: 100%;
+        height: 1;
+        background: transparent;
+    }
+    #apikey-save {
+        background: #1a1a1a;
+        color: #888888;
+        border: none;
+        width: 1fr;
+        margin-right: 1;
+    }
+    #apikey-save, #apikey-cancel { pointer: default; }
+    #apikey-save:hover { color: #eeeeee; background: #252525; }
+    #apikey-cancel {
+        background: #1a1a1a;
+        color: #555555;
+        border: none;
+        width: auto;
+        min-width: 10;
+    }
+    #apikey-cancel:hover { color: #aaaaaa; background: #252525; }
+    #apikey-error {
+        color: #884444;
+        width: 100%;
+        height: 1;
+        margin-top: 1;
+    }
+    """
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="apikey-box"):
+            yield Label("OpenRouter API Key", id="apikey-title")
+            yield Label("Get your free key at openrouter.ai/keys", id="apikey-sub")
+            yield Input(placeholder="sk-or-...", password=True, id="apikey-input")
+            with Horizontal(id="apikey-actions"):
+                yield Button("Save", id="apikey-save")
+                yield Button("Cancel", id="apikey-cancel")
+            yield Label("", id="apikey-error")
+
+    def on_mount(self) -> None:
+        self.query_one("#apikey-input", Input).focus()
+
+    def _submit(self) -> None:
+        key = self.query_one("#apikey-input", Input).value.strip()
+        if not key:
+            self.query_one("#apikey-error", Label).update("Enter your API key.")
+            return
+        if not key.startswith("sk-"):
+            self.query_one("#apikey-error", Label).update("Key should start with sk-")
+            return
+        self.dismiss(key)
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "apikey-save":
+            self._submit()
+        elif event.button.id == "apikey-cancel":
+            self.dismiss(None)
+
+    def on_input_submitted(self, event: Input.Submitted) -> None:
+        if event.input.id == "apikey-input":
+            self._submit()
+
+    def on_key(self, event) -> None:
+        if event.key == "escape":
+            self.dismiss(None)
+
+
 # ── message widgets ────────────────────────────────────────────────────────────
 
 class UserMessage(Vertical):
@@ -2520,6 +2624,34 @@ class CosmosApp(App):
         self._update_sidebar_profile()
         self.query_one("#main-input", ChatInput).focus()
         self._fetch_sidebar_data()
+        if not (self.user or {}).get("openrouter_api_key"):
+            self.push_screen(ApiKeyScreen(), self._on_apikey_entered)
+
+    def _on_apikey_entered(self, key: str | None) -> None:
+        if not key:
+            return
+        self._save_apikey_worker(key)
+
+    @work(thread=True)
+    def _save_apikey_worker(self, key: str) -> None:
+        try:
+            with httpx.Client(timeout=15) as client:
+                resp = client.patch(
+                    f"{COSMOS_API_BASE}/auth/settings",
+                    headers=self._api_headers(),
+                    json={"openrouter_api_key": key},
+                )
+                resp.raise_for_status()
+            def _apply() -> None:
+                if self.user:
+                    self.user["openrouter_api_key"] = key
+                session = _load_session()
+                if session.get("user"):
+                    session["user"]["openrouter_api_key"] = key
+                    _save_session(session)
+            self.app.call_from_thread(_apply)
+        except Exception:
+            pass
 
     # ── API helpers ───────────────────────────────────────────────────────────
 
