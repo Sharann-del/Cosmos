@@ -28,15 +28,11 @@ export async function POST(req: NextRequest) {
 
   const { data: settings } = await authed
     .from("user_settings")
-    .select("full_name, openrouter_api_key")
+    .select("openrouter_api_key")
     .eq("user_id", userId)
     .single();
 
-  // Fall back to auth metadata full_name if user_settings row missing
-  const fullName =
-    settings?.full_name ||
-    (data.user.user_metadata?.full_name as string | undefined) ||
-    "";
+  const fullName = (data.user.user_metadata?.full_name as string | undefined) || "";
 
   return NextResponse.json({
     token,

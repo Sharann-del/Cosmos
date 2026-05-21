@@ -7,14 +7,11 @@ export async function GET(req: NextRequest) {
 
   const { data: settings } = await auth.supabase
     .from("user_settings")
-    .select("full_name, openrouter_api_key")
+    .select("openrouter_api_key")
     .eq("user_id", auth.user.id)
     .single();
 
-  const fullName =
-    settings?.full_name ||
-    (auth.user.user_metadata?.full_name as string | undefined) ||
-    "";
+  const fullName = (auth.user.user_metadata?.full_name as string | undefined) || "";
 
   return NextResponse.json({
     id: auth.user.id,

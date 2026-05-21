@@ -6,15 +6,13 @@ export async function PATCH(req: NextRequest) {
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const { openrouter_api_key, full_name } = body;
+  const { openrouter_api_key } = body;
 
-  const updates: Record<string, string> = {};
-  if (openrouter_api_key !== undefined) updates.openrouter_api_key = openrouter_api_key;
-  if (full_name !== undefined) updates.full_name = full_name;
-
-  if (Object.keys(updates).length === 0) {
+  if (!openrouter_api_key) {
     return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
   }
+
+  const updates = { openrouter_api_key };
 
   const { error } = await auth.supabase
     .from("user_settings")
