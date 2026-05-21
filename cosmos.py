@@ -21,7 +21,6 @@ from pathlib import Path
 import httpx
 from dotenv import load_dotenv
 from rich.style import Style
-from supabase import create_client, Client
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import (
@@ -48,7 +47,8 @@ load_dotenv()
 
 API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 API_URL = "https://openrouter.ai/api/v1/chat/completions"
-CONFIG_PATH = Path.home() / ".cosmos" / "config.json"
+SESSION_PATH = Path.home() / ".cosmos" / "session.json"
+COSMOS_API_BASE = "https://cosmos-tui.app/api"
 
 FOLDER_ICON_CLOSED = "▶"
 FOLDER_ICON_OPEN = "▼"
@@ -483,18 +483,18 @@ def _fetch_title_from_llm(message: str) -> str | None:
     return None
 
 
-# ── config ─────────────────────────────────────────────────────────────────────
+# ── session ─────────────────────────────────────────────────────────────────────
 
-def _load_config() -> dict:
+def _load_session() -> dict:
     try:
-        return json.loads(CONFIG_PATH.read_text())
+        return json.loads(SESSION_PATH.read_text())
     except Exception:
         return {}
 
 
-def _save_config(data: dict) -> None:
-    CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
-    CONFIG_PATH.write_text(json.dumps(data, indent=2))
+def _save_session(data: dict) -> None:
+    SESSION_PATH.parent.mkdir(parents=True, exist_ok=True)
+    SESSION_PATH.write_text(json.dumps(data, indent=2))
 
 
 # ── login screen ───────────────────────────────────────────────────────────────
@@ -583,21 +583,22 @@ class LoginScreen(ModalScreen):
 
     @work(thread=True)
     def _login_worker(self, email: str, password: str) -> None:
-        url = os.getenv("SUPABASE_URL", "")
-        key = os.getenv("SUPABASE_ANON_KEY", "")
         try:
-            sb = create_client(url, key)
-            result = sb.auth.sign_in_with_password({"email": email, "password": password})
-            session = result.session
-            user = result.user
-            config = {
-                "access_token": session.access_token,
-                "refresh_token": session.refresh_token,
-                "expires_at": session.expires_at,
-                "user": {"id": user.id, "email": user.email},
+            with httpx.Client(timeout=30) as client:
+                resp = client.post(
+                    f"{COSMOS_API_BASE}/auth/login",
+                    json={"email": email, "password": password},
+                )
+                if resp.status_code == 401:
+                    raise Exception("Invalid email or password.")
+                resp.raise_for_status()
+                data = resp.json()
+            session = {
+                "token": data["token"],
+                "user": data["user"],
             }
-            _save_config(config)
-            self.app.call_from_thread(self.dismiss, config)
+            _save_session(session)
+            self.app.call_from_thread(self.dismiss, session)
         except Exception as exc:
             def _show_err():
                 try:
@@ -2304,7 +2305,6 @@ class CosmosApp(App):
         self._regen_bar: RegenerateBar | None = None
         self._last_usage_tokens: int | None = None
         # auth / db
-        self.sb: Client | None = None
         self.user: dict | None = None
         self._access_token: str = ""
         self.current_chat_id: str | None = None
@@ -2379,45 +2379,36 @@ class CosmosApp(App):
 
     @work(thread=True)
     def _try_restore_session(self) -> None:
-        config = _load_config()
-        url = os.getenv("SUPABASE_URL", "")
-        key = os.getenv("SUPABASE_ANON_KEY", "")
-        if not config.get("access_token") or not url or not key:
+        session = _load_session()
+        if not session.get("token") or not session.get("user"):
             self.app.call_from_thread(self._show_login)
             return
         try:
-            sb = create_client(url, key)
-            sb.auth.set_session(config["access_token"], config["refresh_token"])
-            user_resp = sb.auth.get_user()
-            session = sb.auth.get_session()
-            if session:
-                updated = {
-                    "access_token": session.access_token,
-                    "refresh_token": session.refresh_token,
-                    "expires_at": session.expires_at,
-                    "user": {"id": user_resp.user.id, "email": user_resp.user.email},
-                }
-                _save_config(updated)
-                config = updated
-            self.app.call_from_thread(self._on_authenticated, config, sb)
+            # Validate token by hitting a protected endpoint
+            with httpx.Client(timeout=15) as client:
+                resp = client.get(
+                    f"{COSMOS_API_BASE}/chats",
+                    headers={"Authorization": f"Bearer {session['token']}"},
+                )
+                resp.raise_for_status()
+            self.app.call_from_thread(self._on_authenticated, session)
         except Exception:
             self.app.call_from_thread(self._show_login)
 
     def _show_login(self) -> None:
         self.push_screen(LoginScreen(), self._on_login_complete)
 
-    def _on_login_complete(self, config: dict | None) -> None:
-        if not config:
+    def _on_login_complete(self, session: dict | None) -> None:
+        if not session:
             return
-        url = os.getenv("SUPABASE_URL", "")
-        key = os.getenv("SUPABASE_ANON_KEY", "")
-        sb = create_client(url, key)
-        sb.auth.set_session(config["access_token"], config["refresh_token"])
-        self._on_authenticated(config, sb)
+        self._on_authenticated(session)
 
     def _profile_display_name(self) -> str:
         if not self.user:
             return ""
+        full_name = (self.user.get("full_name") or "").strip()
+        if full_name:
+            return full_name
         email = (self.user.get("email") or "").strip()
         if "@" in email:
             return email.split("@", 1)[0]
@@ -2447,15 +2438,9 @@ class CosmosApp(App):
         self._cancel_inline_rename()
         self._cancel_inline_new_folder()
         try:
-            if self.sb:
-                self.sb.auth.sign_out()
-        except Exception as exc:
-            self._db_log(f"logout sign_out: {exc}")
-        try:
-            CONFIG_PATH.unlink(missing_ok=True)
+            SESSION_PATH.unlink(missing_ok=True)
         except Exception:
             pass
-        self.sb = None
         self.user = None
         self._access_token = ""
         self.current_chat_id = None
@@ -2485,73 +2470,43 @@ class CosmosApp(App):
         except Exception:
             pass
 
-    def _on_authenticated(self, config: dict, sb: Client) -> None:
-        self.sb = sb
-        self.user = config["user"]
-        self._access_token = config["access_token"]
+    def _on_authenticated(self, session: dict) -> None:
+        self.user = session["user"]
+        self._access_token = session["token"]
         self._db_log(f"authenticated user={self.user['id']} token_prefix={self._access_token[:20]}")
         self._update_sidebar_profile()
         self.query_one("#main-input", ChatInput).focus()
         self._fetch_sidebar_data()
 
-    # ── raw REST helpers (bypass postgrest client auth issues) ────────────────
+    # ── API helpers ───────────────────────────────────────────────────────────
 
-    def _rest_url(self, table: str) -> str:
-        return f"{os.getenv('SUPABASE_URL', '')}/rest/v1/{table}"
-
-    def _rest_headers(self, prefer_repr: bool = False) -> dict:
-        h = {
-            "apikey": os.getenv("SUPABASE_ANON_KEY", ""),
+    def _api_headers(self) -> dict:
+        return {
             "Authorization": f"Bearer {self._access_token}",
             "Content-Type": "application/json",
         }
-        if prefer_repr:
-            h["Prefer"] = "return=representation"
-        return h
 
-    def _rest_get(self, table: str, params: dict) -> list:
+    def _api_get(self, path: str) -> list:
         with httpx.Client(timeout=30) as client:
-            resp = client.get(self._rest_url(table), headers=self._rest_headers(), params=params)
+            resp = client.get(f"{COSMOS_API_BASE}{path}", headers=self._api_headers())
             resp.raise_for_status()
             return resp.json()
 
-    def _rest_post(self, table: str, data: dict) -> dict:
+    def _api_post(self, path: str, data: dict) -> dict:
         with httpx.Client(timeout=30) as client:
-            resp = client.post(
-                self._rest_url(table),
-                headers=self._rest_headers(prefer_repr=True),
-                json=data,
-            )
+            resp = client.post(f"{COSMOS_API_BASE}{path}", headers=self._api_headers(), json=data)
             resp.raise_for_status()
-            rows = resp.json()
-            return rows[0] if rows else {}
+            return resp.json()
 
-    def _rest_patch(self, table: str, data: dict, params: dict) -> dict:
+    def _api_patch(self, path: str, data: dict) -> dict:
         with httpx.Client(timeout=30) as client:
-            resp = client.patch(
-                self._rest_url(table),
-                headers=self._rest_headers(prefer_repr=True),
-                params=params,
-                json=data,
-            )
+            resp = client.patch(f"{COSMOS_API_BASE}{path}", headers=self._api_headers(), json=data)
             resp.raise_for_status()
-            rows = resp.json()
-            if isinstance(rows, list):
-                if not rows:
-                    raise RuntimeError(
-                        f"No {table} rows updated. Run "
-                        "supabase/migrations/001_folder_tree.sql in Supabase."
-                    )
-                return rows[0]
-            return rows if isinstance(rows, dict) else {}
+            return resp.json()
 
-    def _rest_delete(self, table: str, params: dict) -> None:
+    def _api_delete(self, path: str) -> None:
         with httpx.Client(timeout=30) as client:
-            resp = client.delete(
-                self._rest_url(table),
-                headers=self._rest_headers(),
-                params=params,
-            )
+            resp = client.delete(f"{COSMOS_API_BASE}{path}", headers=self._api_headers())
             resp.raise_for_status()
 
     # ── sidebar data ──────────────────────────────────────────────────────────
@@ -2560,34 +2515,13 @@ class CosmosApp(App):
     def _fetch_sidebar_data(self) -> None:
         if not self.user or not self._access_token:
             return
-        uid = self.user["id"]
         try:
+            chats = self._api_get("/chats")
             try:
-                chats = self._rest_get("chats", {
-                    "select": "id,title,created_at,folder_id",
-                    "user_id": f"eq.{uid}",
-                    "order": "created_at.desc",
-                })
+                folders = self._api_get("/folders")
             except Exception:
-                chats = self._rest_get("chats", {
-                    "select": "id,title,created_at",
-                    "user_id": f"eq.{uid}",
-                    "order": "created_at.desc",
-                })
-            try:
-                folders = self._rest_get("folders", {
-                    "select": "id,name,parent_id,created_at",
-                    "user_id": f"eq.{uid}",
-                    "order": "name.asc",
-                })
-            except Exception:
-                folders = self._rest_get("folders", {
-                    "select": "id,name,created_at",
-                    "user_id": f"eq.{uid}",
-                    "order": "name.asc",
-                })
-                for folder in folders:
-                    folder["parent_id"] = None
+                folders = []
+
             def _apply() -> None:
                 try:
                     self._populate_sidebar(chats, folders)
@@ -2809,7 +2743,7 @@ class CosmosApp(App):
         self._load_chat(chat_id)
 
     def _refresh_sidebar_lists(self) -> None:
-        """Reload folder/chat tree from Supabase so UI matches the database."""
+        """Reload folder/chat tree so UI matches the database."""
         if self.user and self._access_token:
             self._fetch_sidebar_data()
             return
@@ -3059,7 +2993,7 @@ class CosmosApp(App):
         if not title:
             return
         try:
-            self._rest_patch("chats", {"title": title}, {"id": f"eq.{chat_id}"})
+            self._api_patch(f"/chats/{chat_id}", {"title": title})
         except Exception as exc:
             self._db_log(f"rename chat: {exc}")
             return
@@ -3077,11 +3011,7 @@ class CosmosApp(App):
         if not label:
             return
         try:
-            self._rest_patch(
-                "folders",
-                {"name": label},
-                {"id": f"eq.{folder_id}"},
-            )
+            self._api_patch(f"/folders/{folder_id}", {"name": label})
         except Exception as exc:
             self._db_log(f"rename folder: {exc}")
             self.notify(
@@ -3101,7 +3031,7 @@ class CosmosApp(App):
         if not chat_id or not self._access_token:
             return
         try:
-            self._rest_delete("chats", {"id": f"eq.{chat_id}"})
+            self._api_delete(f"/chats/{chat_id}")
         except Exception as exc:
             self._db_log(f"delete chat: {exc}")
             return
@@ -3116,7 +3046,7 @@ class CosmosApp(App):
         if not folder_id or not self._access_token:
             return
         try:
-            self._rest_delete("folders", {"id": f"eq.{folder_id}"})
+            self._api_delete(f"/folders/{folder_id}")
         except Exception as exc:
             self._db_log(f"delete folder: {exc}")
             return
@@ -3135,11 +3065,7 @@ class CosmosApp(App):
             return
         folder_id = self._norm_folder_id(folder_id)
         try:
-            self._rest_patch(
-                "chats",
-                {"folder_id": folder_id},
-                {"id": f"eq.{chat_id}"},
-            )
+            self._api_patch(f"/chats/{chat_id}", {"folder_id": folder_id})
         except Exception as exc:
             self._db_log(f"move chat to folder: {exc}")
         for chat in self._chats:
@@ -3357,9 +3283,8 @@ class CosmosApp(App):
     def _create_chat_db(self) -> None:
         if not self.user or not self._access_token:
             return
-        uid = self.user["id"]
         try:
-            row = self._rest_post("chats", {"user_id": uid, "title": "New chat"})
+            row = self._api_post("/chats", {"title": "New chat"})
             chat_id = row.get("id")
             if not chat_id:
                 return
@@ -3386,13 +3311,12 @@ class CosmosApp(App):
     ) -> None:
         if not self.user or not self._access_token:
             return
-        uid = self.user["id"]
         parent_id = self._norm_folder_id(parent_id)
-        payload: dict = {"user_id": uid, "name": name[:40]}
+        payload: dict = {"name": name[:40]}
         if parent_id:
             payload["parent_id"] = parent_id
         try:
-            row = self._rest_post("folders", payload)
+            row = self._api_post("/folders", payload)
             folder_id = row.get("id")
             if not folder_id:
                 return
@@ -3415,11 +3339,7 @@ class CosmosApp(App):
             self.call_from_thread(_apply)
         except Exception as exc:
             self._db_log(f"_create_folder_db error: {exc}")
-            hint = (
-                "Run supabase/migrations/001_folder_tree.sql in Supabase SQL editor."
-                if parent_id and "parent_id" in str(exc).lower()
-                else str(exc)
-            )
+            hint = str(exc)
 
             def _err() -> None:
                 self.notify(
@@ -3444,11 +3364,7 @@ class CosmosApp(App):
         if not self._access_token:
             return
         try:
-            messages = self._rest_get("messages", {
-                "select": "role,content",
-                "chat_id": f"eq.{chat_id}",
-                "order": "created_at.asc",
-            })
+            messages = self._api_get(f"/messages/{chat_id}")
             self.app.call_from_thread(self._render_chat, chat_id, messages)
         except Exception as exc:
             self._db_log(f"_load_chat error: {exc}")
@@ -3565,7 +3481,7 @@ class CosmosApp(App):
         self._update_token_usage()
         self._stream_worker = self._stream(cosmos)
 
-        if self.sb and self.user:
+        if self.user:
             self._persist_user_message(
                 display,
                 serialize_message_content(content),
@@ -3586,11 +3502,10 @@ class CosmosApp(App):
         if not self.user or not self._access_token:
             self._db_log("persist skipped: no user or token")
             return
-        uid = self.user["id"]
         try:
             new_chat = self.current_chat_id is None
             if new_chat:
-                row = self._rest_post("chats", {"user_id": uid, "title": "New chat"})
+                row = self._api_post("/chats", {"title": "New chat"})
                 self._db_log(f"chat insert ok: {row}")
                 chat_id = row.get("id")
                 if not chat_id:
@@ -3605,7 +3520,7 @@ class CosmosApp(App):
             else:
                 chat_id = self.current_chat_id
 
-            row2 = self._rest_post("messages", {
+            row2 = self._api_post("/messages", {
                 "chat_id": chat_id,
                 "role": "user",
                 "content": content,
@@ -3616,7 +3531,7 @@ class CosmosApp(App):
                 title = _fetch_title_from_llm(display_text) or _title_from_message(display_text)
                 self._db_log(f"chat title: {title!r}")
                 try:
-                    self._rest_patch("chats", {"title": title}, {"id": f"eq.{chat_id}"})
+                    self._api_patch(f"/chats/{chat_id}", {"title": title})
                 except Exception as exc:
                     self._db_log(f"chat title patch error: {exc}")
 
@@ -3633,7 +3548,7 @@ class CosmosApp(App):
         if not self._access_token:
             return
         try:
-            row = self._rest_post("messages", {
+            row = self._api_post("/messages", {
                 "chat_id": chat_id,
                 "role": role,
                 "content": content,
@@ -3684,7 +3599,7 @@ class CosmosApp(App):
                     async with client.stream(
                         "POST", API_URL,
                         headers={
-                            "Authorization": f"Bearer {API_KEY}",
+                            "Authorization": f"Bearer {(self.user or {}).get('openrouter_api_key') or API_KEY}",
                             "Content-Type": "application/json",
                         },
                         json={
@@ -3736,7 +3651,7 @@ class CosmosApp(App):
 
         self.conversation.append({"role": "assistant", "content": accumulated})
 
-        if self.sb and self.user and self.current_chat_id:
+        if self.user and self.current_chat_id:
             self._db_save_message(self.current_chat_id, "assistant", accumulated)
 
         self.is_thinking = False
@@ -4027,5 +3942,9 @@ class CosmosApp(App):
         self._update_chat_title()
 
 
-if __name__ == "__main__":
+def main() -> None:
     CosmosApp().run()
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,40 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "cosmos-ai"
+version = "0.1.1"
+description = "A full AI chatbot that lives in your terminal. 25+ free models via OpenRouter."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [
+  { name = "Sharann Manojkumar" }
+]
+keywords = ["ai", "terminal", "tui", "chat", "llm", "openrouter"]
+classifiers = [
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Environment :: Console",
+  "Topic :: Terminals",
+]
+dependencies = [
+  "textual>=0.60.0",
+  "httpx>=0.27.0",
+  "python-dotenv>=1.0.0",
+  "pypdf>=4.0.0",
+]
+
+[project.urls]
+Homepage   = "https://cosmos-tui.app"
+Repository = "https://github.com/Sharann-del/Cosmos"
+
+[project.scripts]
+cosmos = "cosmos:main"
+
+[tool.hatch.build.targets.wheel]
+include = ["cosmos.py"]

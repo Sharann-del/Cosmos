@@ -2,14 +2,15 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-export default function SignupPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+export default function OnboardingPage() {
+  const router = useRouter();
+  const [fullName, setFullName] = useState("");
+  const [apiKey, setApiKey] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [verified, setVerified] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -17,35 +18,29 @@ export default function SignupPage() {
     setLoading(true);
     try {
       const supabase = createClient();
-      const { error: signUpError } = await supabase.auth.signUp({ email, password });
-      if (signUpError) { setError(signUpError.message); return; }
-      setVerified(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { router.push("/login"); return; }
+
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: { full_name: fullName.trim() },
+      });
+      if (updateError) { setError(updateError.message); return; }
+
+      const { error: upsertError } = await supabase
+        .from("user_settings")
+        .upsert({
+          user_id: user.id,
+          full_name: fullName.trim(),
+          openrouter_api_key: apiKey.trim(),
+        });
+      if (upsertError) { setError(upsertError.message); return; }
+
+      router.push("/dashboard");
     } catch {
       setError("An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
-  }
-
-  if (verified) {
-    return (
-      <div style={{ minHeight: "100vh", background: "#000", color: "#fff", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "2rem" }}>
-        <Link href="/" className="font-gloock" style={{ fontSize: "clamp(2rem, 6vw, 3.5rem)", color: "#fff", textDecoration: "none", letterSpacing: "-0.02em", marginBottom: "3.5rem", display: "block" }}>
-          Cosmos
-        </Link>
-        <div style={{ width: "100%", maxWidth: "22rem", textAlign: "center" }}>
-          <h1 className="font-crimson" style={{ fontSize: "1.6rem", fontWeight: 400, color: "#fff", margin: "0 0 1rem" }}>
-            Check your email.
-          </h1>
-          <p className="font-crimson" style={{ fontSize: "1.05rem", color: "#555", margin: "0 0 2rem", lineHeight: 1.6 }}>
-            We sent a verification link to <span style={{ color: "#888" }}>{email}</span>. Click it to activate your account.
-          </p>
-          <Link href="/login" className="font-crimson" style={{ fontSize: "0.95rem", color: "#444", textDecoration: "none", borderBottom: "1px solid #222" }}>
-            Back to log in
-          </Link>
-        </div>
-      </div>
-    );
   }
 
   return (
@@ -57,25 +52,25 @@ export default function SignupPage() {
 
       <div style={{ width: "100%", maxWidth: "22rem" }}>
         <h1 className="font-crimson" style={{ fontSize: "1.6rem", fontWeight: 400, color: "#fff", margin: "0 0 0.4rem" }}>
-          Create an account.
+          Set up your account.
         </h1>
         <p className="font-crimson" style={{ fontSize: "1rem", color: "#333", margin: "0 0 2.5rem" }}>
-          Free forever. No credit card.
+          Just two things to get started.
         </p>
 
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
           <div>
-            <label className="font-crimson" style={{ display: "block", fontSize: "0.9rem", color: "#444", marginBottom: "0.4rem" }} htmlFor="email">
-              Email
+            <label className="font-crimson" style={{ display: "block", fontSize: "0.9rem", color: "#444", marginBottom: "0.4rem" }} htmlFor="fullName">
+              Your name
             </label>
             <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              id="fullName"
+              type="text"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
               required
-              autoComplete="email"
-              placeholder="you@example.com"
+              autoComplete="name"
+              placeholder="Jane Smith"
               style={{ width: "100%", background: "#080808", border: "1px solid #111", padding: "0.65rem 0.85rem", color: "#fff", fontSize: "1rem", fontFamily: "var(--font-crimson)", outline: "none", boxSizing: "border-box" }}
               onFocus={e => { e.currentTarget.style.borderColor = "#333" }}
               onBlur={e => { e.currentTarget.style.borderColor = "#111" }}
@@ -83,21 +78,24 @@ export default function SignupPage() {
           </div>
 
           <div>
-            <label className="font-crimson" style={{ display: "block", fontSize: "0.9rem", color: "#444", marginBottom: "0.4rem" }} htmlFor="password">
-              Password
+            <label className="font-crimson" style={{ display: "block", fontSize: "0.9rem", color: "#444", marginBottom: "0.4rem" }} htmlFor="apiKey">
+              OpenRouter API key
             </label>
             <input
-              id="password"
+              id="apiKey"
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
               required
-              autoComplete="new-password"
-              placeholder="••••••••"
+              autoComplete="off"
+              placeholder="sk-or-..."
               style={{ width: "100%", background: "#080808", border: "1px solid #111", padding: "0.65rem 0.85rem", color: "#fff", fontSize: "1rem", fontFamily: "var(--font-crimson)", outline: "none", boxSizing: "border-box" }}
               onFocus={e => { e.currentTarget.style.borderColor = "#333" }}
               onBlur={e => { e.currentTarget.style.borderColor = "#111" }}
             />
+            <p className="font-crimson" style={{ fontSize: "0.82rem", color: "#2a2a2a", margin: "0.4rem 0 0" }}>
+              Get one free at openrouter.ai
+            </p>
           </div>
 
           {error && (
@@ -114,16 +112,9 @@ export default function SignupPage() {
             onMouseEnter={e => { if (!loading) e.currentTarget.style.borderColor = "#555" }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = "#222" }}
           >
-            {loading ? "Creating account…" : "Create account →"}
+            {loading ? "Saving…" : "Continue →"}
           </button>
         </form>
-
-        <p className="font-crimson" style={{ fontSize: "0.95rem", color: "#333", marginTop: "2rem" }}>
-          Already have an account?{" "}
-          <Link href="/login" style={{ color: "#888", textDecoration: "none", borderBottom: "1px solid #222" }}>
-            Log in
-          </Link>
-        </p>
       </div>
     </div>
   );
