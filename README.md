@@ -1,6 +1,10 @@
 <div align="center">
 
-# Cosmos
+<div align="center">
+
+<img src="assets/cosmos.svg" alt="Cosmos" width="500">
+
+</div>
 
 ### The AI chatbot that lives in your terminal.
 
