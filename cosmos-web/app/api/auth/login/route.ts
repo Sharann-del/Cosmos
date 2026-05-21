@@ -19,20 +19,9 @@ export async function POST(req: NextRequest) {
 
   const token = data.session.access_token;
   const userId = data.user.id;
-
-  const authed = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { global: { headers: { Authorization: `Bearer ${token}` } } }
-  );
-
-  const { data: settings } = await authed
-    .from("user_settings")
-    .select("openrouter_api_key")
-    .eq("user_id", userId)
-    .single();
-
-  const fullName = (data.user.user_metadata?.full_name as string | undefined) || "";
+  const meta = data.user.user_metadata ?? {};
+  const fullName = (meta.full_name as string | undefined) || "";
+  const orKey = (meta.openrouter_api_key as string | undefined) || "";
 
   return NextResponse.json({
     token,
@@ -40,7 +29,7 @@ export async function POST(req: NextRequest) {
       id: userId,
       email: data.user.email,
       full_name: fullName,
-      openrouter_api_key: settings?.openrouter_api_key ?? "",
+      openrouter_api_key: orKey,
     },
   });
 }
