@@ -16,7 +16,10 @@ export default function SignOutButton() {
   return (
     <button
       onClick={handleSignOut}
-      className="text-xs border border-[#1a1a1a] px-3 py-1 text-[#505050] hover:border-[#2a2a2a] hover:text-[#c8c8c8] transition-colors"
+      className="font-crimson"
+      style={{ background: "transparent", border: "none", padding: 0, color: "#333", fontSize: "1rem", cursor: "pointer", transition: "color 0.2s" }}
+      onMouseEnter={e => { e.currentTarget.style.color = "#888" }}
+      onMouseLeave={e => { e.currentTarget.style.color = "#333" }}
     >
       Sign out
     </button>

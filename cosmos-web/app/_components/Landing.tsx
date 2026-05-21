@@ -1,717 +1,424 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import Link from 'next/link'
+import { useEffect, useRef } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 
-// ─── palette ────────────────────────────────────────────────────────────────
-const WARM_WHITE = '#ece7dd'
-const AMBER      = '#c4a46a'
-const DIM        = '#5c5244'
-const BORDER     = '#1e1a14'
-const CARD_BG    = '#0b0906'
-
-// ─── data ───────────────────────────────────────────────────────────────────
-const SUBTITLE = 'A terminal AI chat interface for people who live in the terminal.'
-
+// ─── data ────────────────────────────────────────────────────────────────────
 const FEATURES = [
   {
-    num: '01',
-    title: 'Twenty-five free models',
-    body: 'GPT-4o, Claude 3.5, Gemini 1.5, Llama 3, Mistral and more via OpenRouter — all free, all switchable mid-session.',
+    n:    '01',
+    head: 'Twenty-five free models.',
+    body: 'GPT, Claude, Gemini, Llama, Mistral and more — all free, all via OpenRouter. Switch mid-session.',
   },
   {
-    num: '02',
-    title: 'Real-time streaming',
-    body: 'Tokens arrive as the model generates them. No spinners, no wall-of-text reveal. Read while it thinks.',
+    n:    '02',
+    head: 'History that sticks.',
+    body: 'Every conversation synced to the cloud. Organized into folders. Always there when you come back.',
   },
   {
-    num: '03',
-    title: 'Rich inline output',
-    body: 'Mermaid flowcharts, sequence diagrams, bar charts, tables and blockquotes render directly in the terminal. Not a monochrome dump.',
+    n:    '03',
+    head: 'Attach anything.',
+    body: 'Drop in images, PDFs, DOCX, or any text file. The model sees it all.',
   },
   {
-    num: '04',
-    title: 'Persistent history',
-    body: 'Every conversation lives in Supabase. Resume across sessions and devices. Organize into folders.',
-  },
-  {
-    num: '05',
-    title: 'Multiline editing',
-    body: 'Full multiline input with keyboard shortcuts. Compose long prompts without fighting a single-line box. Ctrl+Enter to send.',
+    n:    '04',
+    head: 'Rich output, rendered.',
+    body: 'Mermaid diagrams, bar charts, tables, and full Markdown — rendered inline, right in the terminal.',
   },
 ]
 
-const STATS: { display: string; label: string; count?: number }[] = [
-  { display: '25+',  label: 'free models',      count: 25 },
-  { display: '128k', label: 'context window',   count: 128 },
-  { display: '$0',   label: 'to get started'              },
-  { display: '∞',    label: 'conversations'               },
-]
-
-const TABS = ['home', 'chat', 'code'] as const
-type Tab = typeof TABS[number]
-
-// ─── star canvas ────────────────────────────────────────────────────────────
-function StarCanvas() {
-  const ref = useRef<HTMLCanvasElement>(null)
-
-  useEffect(() => {
-    const canvas = ref.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    canvas.width  = canvas.offsetWidth
-    canvas.height = canvas.offsetHeight
-
-    const density = (canvas.width * canvas.height) / 6000
-    const count = Math.min(Math.floor(density), 280)
-
-    const stars = Array.from({ length: count }, () => ({
-      x:     Math.random() * canvas.width,
-      y:     Math.random() * canvas.height,
-      r:     Math.random() * 0.8 + 0.15,
-      phase: Math.random() * Math.PI * 2,
-      freq:  Math.random() * 0.007 + 0.002,
-    }))
-
-    let frame = 0
-    let raf: number
-    const tick = () => {
-      frame++
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
-      for (const s of stars) {
-        const a = 0.08 + 0.52 * (0.5 + 0.5 * Math.sin(s.phase + frame * s.freq))
-        ctx.beginPath()
-        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2)
-        ctx.fillStyle = `rgba(236, 231, 221, ${a})`
-        ctx.fill()
-      }
-      raf = requestAnimationFrame(tick)
-    }
-    tick()
-    return () => cancelAnimationFrame(raf)
-  }, [])
-
-  return <canvas ref={ref} className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.75 }} />
-}
-
-// ─── hooks ──────────────────────────────────────────────────────────────────
-function useWordReveal(text: string, delay = 70, start = 900) {
-  const words = text.split(' ')
-  const [count, setCount] = useState(0)
-
-  useEffect(() => {
-    const t = setTimeout(() => {
-      let i = 0
-      const iv = setInterval(() => {
-        i++
-        setCount(i)
-        if (i >= words.length) clearInterval(iv)
-      }, delay)
-      return () => clearInterval(iv)
-    }, start)
-    return () => clearTimeout(t)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  return { words, count }
-}
-
-function useCountUp(target: number | undefined, trigger: boolean) {
-  const [val, setVal] = useState(0)
-
-  useEffect(() => {
-    if (!trigger || target === undefined || target === 0) return
-    const steps = 45
-    const ms    = 1100
-    let step    = 0
-    const iv = setInterval(() => {
-      step++
-      const t = step / steps
-      setVal(Math.round((1 - Math.pow(1 - t, 3)) * target))
-      if (step >= steps) clearInterval(iv)
-    }, ms / steps)
-    return () => clearInterval(iv)
-  }, [target, trigger])
-
-  return val
-}
-
-// ─── stat cell ──────────────────────────────────────────────────────────────
-function StatCell({ stat, trigger }: { stat: typeof STATS[number]; trigger: boolean }) {
-  const num = useCountUp(stat.count, trigger)
-
-  const text = stat.count
-    ? stat.display.replace(/\d+/, String(num))
-    : stat.display
-
-  return (
-    <div className="text-center">
-      <div
-        className="font-crimson mb-2 leading-none"
-        style={{ fontSize: 'clamp(2.5rem, 6vw, 4rem)', fontStyle: 'italic', color: WARM_WHITE }}
-      >
-        {text}
-      </div>
-      <div className="font-mono text-[9px] tracking-[0.25em] uppercase" style={{ color: DIM }}>
-        {stat.label}
-      </div>
-    </div>
-  )
-}
-
-// ─── main component ─────────────────────────────────────────────────────────
+// ─── component ───────────────────────────────────────────────────────────────
 export default function Landing() {
-  const [titleIn,    setTitleIn]    = useState(false)
-  const [activeTab,  setActiveTab]  = useState<Tab>('home')
-  const [copied,     setCopied]     = useState(false)
-  const [statsReady, setStatsReady] = useState(false)
+  const revealRefs = useRef<(HTMLElement | null)[]>([])
 
-  const statsRef    = useRef<HTMLDivElement>(null)
-  const featureRefs = useRef<(HTMLDivElement | null)[]>([])
-  const { words, count: wordCount } = useWordReveal(SUBTITLE)
-
-  // mount title
-  useEffect(() => {
-    const t = setTimeout(() => setTitleIn(true), 80)
-    return () => clearTimeout(t)
-  }, [])
-
-  // scroll-reveal feature cards
   useEffect(() => {
     const io = new IntersectionObserver(
-      (entries) => entries.forEach(e => {
-        if (e.isIntersecting) e.target.classList.add('card-visible')
+      entries => entries.forEach(e => {
+        if (e.isIntersecting) e.target.classList.add('feature-visible')
       }),
-      { threshold: 0.1 }
+      { threshold: 0.08 },
     )
-    featureRefs.current.forEach(el => el && io.observe(el))
+    revealRefs.current.forEach(el => el && io.observe(el))
     return () => io.disconnect()
   }, [])
 
-  // stats trigger
-  useEffect(() => {
-    if (!statsRef.current) return
-    const io = new IntersectionObserver(
-      ([e]) => { if (e.isIntersecting) setStatsReady(true) },
-      { threshold: 0.25 }
-    )
-    io.observe(statsRef.current)
-    return () => io.disconnect()
-  }, [])
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText('pip install cosmos-ai').then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    })
+  const addRef = (i: number) => (el: HTMLElement | null) => {
+    revealRefs.current[i] = el
   }
 
   return (
-    <div className="min-h-screen" style={{ background: '#000', color: WARM_WHITE }}>
-      {/* scanline */}
-      <div className="scanline-overlay" />
+    <div style={{ background: '#000', color: '#fff', overflowX: 'hidden' }}>
 
-      {/* ── nav ─────────────────────────────────────────────────────────── */}
-      <nav
-        className="fixed top-0 left-0 right-0 z-50 px-6 sm:px-12 py-4 flex items-center justify-between"
-        style={{
-          borderBottom: `1px solid ${BORDER}`,
-          background: 'rgba(0,0,0,0.88)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-        }}
-      >
-        <span className="font-mono text-[10px] tracking-[0.3em] uppercase" style={{ color: '#3a3228' }}>
-          cosmos
-        </span>
-        <div className="flex items-center gap-6">
-          <Link
-            href="/login"
-            className="font-mono text-[11px] transition-colors duration-200"
-            style={{ color: DIM }}
-            onMouseEnter={e => (e.currentTarget.style.color = WARM_WHITE)}
-            onMouseLeave={e => (e.currentTarget.style.color = DIM)}
-          >
-            login
-          </Link>
+      {/* ────────────────────────── HERO ───────────────────────── */}
+      <section style={{
+        minHeight:      '100vh',
+        display:        'flex',
+        flexDirection:  'column',
+        justifyContent: 'center',
+        alignItems:     'center',
+        textAlign:      'center',
+        padding:        '0 2rem',
+        position:       'relative',
+      }}>
+        {/* very faint vignette so the edges recede */}
+        <div style={{
+          position:      'absolute',
+          inset:         0,
+          background:    'radial-gradient(ellipse 90% 80% at 50% 60%, transparent 40%, #000 100%)',
+          pointerEvents: 'none',
+        }} />
+
+        <h1
+          className="font-gloock"
+          style={{
+            fontSize:   'clamp(6.5rem, 20vw, 18rem)',
+            lineHeight: 0.92,
+            letterSpacing: '-0.03em',
+            color:      '#fff',
+            margin:     '0 0 2.5rem',
+            position:   'relative',
+            animationName:            'cosmosEntry',
+            animationDuration:        '1.4s',
+            animationTimingFunction:  'cubic-bezier(0.16, 1, 0.3, 1)',
+            animationFillMode:        'both',
+            animationDelay:           '0.05s',
+          }}
+        >
+          Cosmos
+        </h1>
+
+        <p
+          className="font-crimson"
+          style={{
+            fontSize:   'clamp(1.1rem, 2vw, 1.4rem)',
+            fontStyle:  'normal',
+            color:      '#444',
+            margin:     '0 0 3.5rem',
+            lineHeight: 1,
+            whiteSpace: 'nowrap',
+            position:   'relative',
+            animationName:           'cosmosEntry',
+            animationDuration:       '1.2s',
+            animationTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)',
+            animationFillMode:       'both',
+            animationDelay:          '0.35s',
+          }}
+        >
+          A terminal AI chat interface for people who live in the terminal.
+        </p>
+
+        <div style={{
+          display:  'flex',
+          gap:      '2.5rem',
+          alignItems: 'center',
+          position: 'relative',
+          animationName:           'cosmosEntry',
+          animationDuration:       '1s',
+          animationTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)',
+          animationFillMode:       'both',
+          animationDelay:          '0.6s',
+        }}>
           <Link
             href="/signup"
-            className="font-mono text-[11px] px-4 py-1.5 transition-all duration-200"
-            style={{ border: `1px solid #2c2418`, color: WARM_WHITE }}
-            onMouseEnter={e => {
-              e.currentTarget.style.borderColor = AMBER
-              e.currentTarget.style.color = AMBER
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.borderColor = '#2c2418'
-              e.currentTarget.style.color = WARM_WHITE
-            }}
+            className="font-crimson"
+            style={{ fontSize: '1.2rem', color: '#fff', textDecoration: 'none', borderBottom: '1px solid #fff', paddingBottom: '2px', transition: 'color 0.2s, border-color 0.2s' }}
+            onMouseEnter={e => { e.currentTarget.style.color = '#888'; e.currentTarget.style.borderColor = '#888' }}
+            onMouseLeave={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = '#fff' }}
           >
-            sign up
+            Get started →
+          </Link>
+          <Link
+            href="/login"
+            className="font-crimson"
+            style={{ fontSize: '1.2rem', color: '#333', textDecoration: 'none', transition: 'color 0.2s' }}
+            onMouseEnter={e => { e.currentTarget.style.color = '#666' }}
+            onMouseLeave={e => { e.currentTarget.style.color = '#333' }}
+          >
+            Log in
           </Link>
         </div>
-      </nav>
 
-      {/* ── hero ────────────────────────────────────────────────────────── */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden px-6">
-        <StarCanvas />
+      </section>
 
-        {/* radial warmth behind title */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: `radial-gradient(ellipse 75% 55% at 50% 48%,
-              rgba(24, 16, 6, 0.95) 0%,
-              rgba(12, 8, 3, 0.7) 45%,
-              rgba(0,0,0,1) 78%)`,
-          }}
+      {/* ───────────────────────── VIDEO ───────────────────────── */}
+      <section style={{ position: 'relative', lineHeight: 0 }}>
+        {/* glow above — bleeds upward from video's top edge */}
+        <div style={{
+          position:      'absolute',
+          top:           '-10vw',
+          left:          '-5%',
+          right:         '-5%',
+          height:        '24vw',
+          background:    `radial-gradient(
+            ellipse 80% 100% at 50% 100%,
+            rgba(110, 20, 255, 0.88) 0%,
+            rgba(20,  80, 255, 0.60) 32%,
+            rgba(0,  190, 255, 0.30) 62%,
+            transparent 85%
+          )`,
+          mixBlendMode:  'screen',
+          pointerEvents: 'none',
+          zIndex:        0,
+        }} />
+
+        <video
+          src="/screenshots/animation.mov"
+          autoPlay
+          muted
+          loop
+          playsInline
+          style={{ width: '100%', display: 'block', position: 'relative', zIndex: 1 }}
         />
 
-        <div className="relative z-10 flex flex-col items-center text-center">
-          {/* eyebrow */}
-          <div
-            className="font-mono text-[10px] tracking-[0.35em] uppercase mb-8"
-            style={{
-              color: AMBER,
-              opacity: titleIn ? 1 : 0,
-              transform: titleIn ? 'none' : 'translateY(10px)',
-              transition: 'opacity 0.6s ease, transform 0.6s ease',
-            }}
-          >
-            Terminal AI Chat
-          </div>
-
-          {/* COSMOS — Gloock, used only here */}
-          <h1
-            className="font-gloock leading-none"
-            style={{
-              fontSize:      'clamp(5.5rem, 17vw, 12rem)',
-              letterSpacing: '-0.025em',
-              color:         '#ffffff',
-              opacity:       titleIn ? 1 : 0,
-              transform:     titleIn ? 'translateY(0) scale(1)' : 'translateY(28px) scale(0.97)',
-              transition:    'opacity 1s cubic-bezier(0.16,1,0.3,1), transform 1s cubic-bezier(0.16,1,0.3,1)',
-            }}
-          >
-            COSMOS
-          </h1>
-
-          {/* thin amber rule under title */}
-          <div
-            className="mt-6 mb-10"
-            style={{
-              width:      titleIn ? '4rem' : '0',
-              height:     '1px',
-              background: AMBER,
-              opacity:    0.5,
-              transition: 'width 0.8s cubic-bezier(0.16,1,0.3,1) 0.3s',
-            }}
-          />
-
-          {/* subtitle — Crimson Pro italic, word-by-word */}
-          <p
-            className="font-crimson max-w-sm leading-relaxed mb-12"
-            style={{ fontSize: '1.25rem', fontStyle: 'italic', color: '#7a6e60', minHeight: '3.5rem' }}
-          >
-            {words.map((w, i) => (
-              <span
-                key={i}
-                className="inline-block"
-                style={{
-                  marginRight: '0.3em',
-                  opacity:   i < wordCount ? 1 : 0,
-                  transform: i < wordCount ? 'none' : 'translateY(6px)',
-                  transition: 'opacity 0.3s ease, transform 0.3s ease',
-                }}
-              >
-                {w}
-              </span>
-            ))}
-          </p>
-
-          {/* CTAs */}
-          <div
-            className="flex items-center gap-4"
-            style={{
-              opacity:   titleIn ? 1 : 0,
-              transform: titleIn ? 'none' : 'translateY(16px)',
-              transition: 'opacity 0.8s ease 0.4s, transform 0.8s ease 0.4s',
-            }}
-          >
-            <Link
-              href="/signup"
-              data-text="Get Started →"
-              className="glitch-btn font-mono text-[11px] px-7 py-3 transition-all duration-300"
-              style={{ border: `1px solid rgba(196,164,106,0.35)`, color: WARM_WHITE }}
-              onMouseEnter={e => {
-                e.currentTarget.style.borderColor = AMBER
-                e.currentTarget.style.color = AMBER
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.borderColor = 'rgba(196,164,106,0.35)'
-                e.currentTarget.style.color = WARM_WHITE
-              }}
-            >
-              Get Started →
-            </Link>
-            <a
-              href="https://github.com/Sharann-del/Cosmos"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-mono text-[11px] px-7 py-3 transition-all duration-300"
-              style={{ border: `1px solid ${BORDER}`, color: DIM }}
-              onMouseEnter={e => {
-                e.currentTarget.style.color = '#8a7e6e'
-                e.currentTarget.style.borderColor = '#2c2418'
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.color = DIM
-                e.currentTarget.style.borderColor = BORDER
-              }}
-            >
-              GitHub →
-            </a>
-          </div>
-        </div>
-
-        {/* scroll cue */}
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1">
-          <div
-            className="w-px"
-            style={{
-              height: '3rem',
-              background: `linear-gradient(to bottom, ${AMBER}, transparent)`,
-              opacity: 0.3,
-              animation: 'scrollPulse 2s ease-in-out infinite',
-            }}
-          />
-        </div>
+        {/* glow below — bleeds downward from video's bottom edge */}
+        <div style={{
+          position:      'absolute',
+          bottom:        '-10vw',
+          left:          '-5%',
+          right:         '-5%',
+          height:        '24vw',
+          background:    `radial-gradient(
+            ellipse 80% 100% at 50% 0%,
+            rgba(110, 20, 255, 0.88) 0%,
+            rgba(20,  80, 255, 0.60) 32%,
+            rgba(0,  190, 255, 0.30) 62%,
+            transparent 85%
+          )`,
+          mixBlendMode:  'screen',
+          pointerEvents: 'none',
+          zIndex:        0,
+        }} />
       </section>
 
-      {/* ── screenshots ─────────────────────────────────────────────────── */}
-      <section className="px-6 sm:px-12 py-24" style={{ borderTop: `1px solid ${BORDER}` }}>
-        <div className="max-w-4xl mx-auto">
-          <Label>Preview</Label>
-
-          <div className="mt-10 overflow-hidden" style={{ border: `1px solid ${BORDER}` }}>
-            {/* chrome bar */}
-            <div
-              className="px-4 py-2.5 flex items-center gap-4"
-              style={{ background: CARD_BG, borderBottom: `1px solid ${BORDER}` }}
-            >
-              <div className="flex items-center gap-1.5">
-                {[0, 1, 2].map(i => (
-                  <div key={i} className="w-2.5 h-2.5 rounded-full" style={{ background: '#221c14' }} />
-                ))}
-              </div>
-              <div className="flex items-center gap-1 ml-auto">
-                {TABS.map(tab => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className="font-mono text-[10px] px-3 py-1 transition-colors duration-200"
-                    style={{
-                      color:      activeTab === tab ? AMBER : '#3a3028',
-                      background: activeTab === tab ? 'rgba(196,164,106,0.06)' : 'transparent',
-                    }}
-                  >
-                    {tab}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="relative" style={{ aspectRatio: '16/9', background: CARD_BG }}>
-              {TABS.map(tab => (
-                <div
-                  key={tab}
-                  className="absolute inset-0"
-                  style={{
-                    opacity:       activeTab === tab ? 1 : 0,
-                    pointerEvents: activeTab === tab ? 'auto' : 'none',
-                    transition:    'opacity 0.25s ease',
-                  }}
-                >
-                  <Image
-                    src={`/screenshots/${tab}.png`}
-                    alt={`Cosmos ${tab}`}
-                    fill
-                    className="object-cover"
-                    priority={tab === 'home'}
-                  />
-                </div>
-              ))}
-              {/* placeholder until screenshots land */}
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <span className="font-mono text-[9px]" style={{ color: '#1e1a14' }}>
-                  /screenshots/{activeTab}.png
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── features ────────────────────────────────────────────────────── */}
-      <section className="px-6 sm:px-12 py-24" style={{ borderTop: `1px solid ${BORDER}` }}>
-        <div className="max-w-4xl mx-auto">
-          <Label>Features</Label>
-
-          <div className="mt-14">
-            {FEATURES.map((f, i) => (
-              <div
-                key={f.num}
-                ref={el => { featureRefs.current[i] = el }}
-                className="card-hidden group py-9 grid gap-5 items-start"
-                style={{
-                  gridTemplateColumns: 'min(72px,18vw) auto 1fr',
-                  borderBottom: `1px solid ${BORDER}`,
-                  transitionDelay: `${i * 70}ms`,
-                }}
-              >
-                {/* big decorative number — Crimson Pro */}
-                <span
-                  className="font-crimson leading-none transition-colors duration-400 select-none"
-                  style={{
-                    fontSize:   'clamp(2.2rem, 5vw, 3.25rem)',
-                    fontStyle:  'italic',
-                    color:      '#2c231a',
-                    transition: 'color 0.3s ease',
-                  }}
-                  ref={el => {
-                    if (!el) return
-                    const parent = el.closest('.group') as HTMLElement
-                    if (!parent) return
-                    parent.addEventListener('mouseenter', () => { el.style.color = AMBER })
-                    parent.addEventListener('mouseleave', () => { el.style.color = '#2c231a' })
-                  }}
-                >
-                  {f.num}
-                </span>
-
-                {/* title — Crimson Pro upright */}
-                <h3
-                  className="font-crimson pt-1"
-                  style={{ fontSize: '1.15rem', lineHeight: 1.25, color: WARM_WHITE, minWidth: '170px', maxWidth: '210px' }}
-                >
-                  {f.title}
-                </h3>
-
-                {/* body — mono */}
-                <p
-                  className="font-mono leading-relaxed pt-1"
-                  style={{ fontSize: '10.5px', color: DIM }}
-                >
-                  {f.body}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── stats ───────────────────────────────────────────────────────── */}
-      <section ref={statsRef} className="px-6 sm:px-12 py-24" style={{ borderTop: `1px solid ${BORDER}` }}>
-        <div className="max-w-4xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-10">
-          {STATS.map(s => (
-            <StatCell key={s.label} stat={s} trigger={statsReady} />
-          ))}
-        </div>
-      </section>
-
-      {/* ── install ─────────────────────────────────────────────────────── */}
-      <section className="px-6 sm:px-12 py-24" style={{ borderTop: `1px solid ${BORDER}` }}>
-        <div className="max-w-4xl mx-auto grid sm:grid-cols-2 gap-16 items-start">
-          {/* left copy */}
-          <div>
-            <Label>Install</Label>
-            <h2
-              className="font-crimson mt-6 mb-4 leading-tight"
-              style={{ fontSize: 'clamp(1.75rem, 4vw, 2.5rem)', fontStyle: 'italic', color: WARM_WHITE }}
-            >
-              Up and running
-              <br />
-              <span style={{ color: DIM }}>in thirty seconds.</span>
-            </h2>
-            <p
-              className="font-mono leading-relaxed mb-10 max-w-xs"
-              style={{ fontSize: '10.5px', color: DIM }}
-            >
-              Install via pip, run cosmos, sign in. No config files, no API keys to source yourself.
-            </p>
-            <Link
-              href="/signup"
-              className="inline-flex font-mono text-[11px] px-5 py-2.5 transition-all duration-300"
-              style={{ border: `1px solid #2c2418`, color: WARM_WHITE }}
-              onMouseEnter={e => {
-                e.currentTarget.style.borderColor = `rgba(196,164,106,0.5)`
-                e.currentTarget.style.background  = CARD_BG
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.borderColor = '#2c2418'
-                e.currentTarget.style.background  = 'transparent'
-              }}
-            >
-              Create account →
-            </Link>
-          </div>
-
-          {/* terminal block */}
-          <div style={{ border: `1px solid ${BORDER}` }}>
-            <div
-              className="px-4 py-2 flex items-center justify-between"
-              style={{ background: CARD_BG, borderBottom: `1px solid ${BORDER}` }}
-            >
-              <div className="flex items-center gap-1.5">
-                {[0, 1, 2].map(i => (
-                  <div key={i} className="w-2 h-2 rounded-full" style={{ background: '#1c1712' }} />
-                ))}
-              </div>
-              <button
-                onClick={handleCopy}
-                className="font-mono text-[10px] transition-colors duration-200"
-                style={{ color: copied ? AMBER : '#3a3228' }}
-              >
-                {copied ? '✓ copied' : 'copy'}
-              </button>
-            </div>
-            <div className="px-5 py-6 space-y-3" style={{ background: '#000' }}>
-              <Line prompt="$" cmd="pip install cosmos-ai" />
-              <Line prompt="$" cmd="cosmos" />
-              <div className="pt-2 space-y-1">
-                <Ghost text="✓ Connecting to OpenRouter..." />
-                <Ghost text="✓ Loading chat history..." />
-                <Ghost text="Welcome back." amber />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── pricing ─────────────────────────────────────────────────────── */}
-      <section className="px-6 sm:px-12 py-24" style={{ borderTop: `1px solid ${BORDER}` }}>
-        <div className="max-w-4xl mx-auto">
-          <Label>Pricing</Label>
-
-          <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 gap-px" style={{ background: BORDER }}>
-            {/* free */}
-            <div className="p-8 sm:p-10" style={{ background: '#000' }}>
-              <h3
-                className="font-crimson mb-1"
-                style={{ fontSize: '2rem', color: WARM_WHITE }}
-              >
-                Free
-              </h3>
-              <p className="font-mono text-[9px] tracking-[0.25em] mb-8" style={{ color: '#3a3228' }}>
-                FOREVER
-              </p>
-              <ul className="space-y-3.5 mb-10">
-                {[
-                  '25+ free OpenRouter models',
-                  'Unlimited conversations',
-                  'Chat history & folders',
-                  'Streaming responses',
-                  'Rich terminal output',
-                ].map(item => (
-                  <li key={item} className="flex items-baseline gap-3">
-                    <span className="font-mono text-[9px]" style={{ color: AMBER }}>—</span>
-                    <span className="font-mono text-[10.5px]" style={{ color: '#8a7e6e' }}>{item}</span>
-                  </li>
-                ))}
-              </ul>
-              <Link
-                href="/signup"
-                className="inline-block font-mono text-[11px] px-5 py-2.5 transition-all duration-300"
-                style={{ border: `1px solid #2c2418`, color: WARM_WHITE }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = `rgba(196,164,106,0.5)` }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = '#2c2418' }}
-              >
-                Get started
-              </Link>
-            </div>
-
-            {/* pro */}
-            <div className="p-8 sm:p-10" style={{ background: '#000', opacity: 0.28 }}>
-              <h3
-                className="font-crimson mb-1"
-                style={{ fontSize: '2rem', color: WARM_WHITE }}
-              >
-                Pro
-              </h3>
-              <p className="font-mono text-[9px] tracking-[0.25em] mb-8" style={{ color: '#3a3228' }}>
-                $9 / MONTH
-              </p>
-              <ul className="space-y-3.5 mb-10">
-                {[
-                  'Everything in Free',
-                  'Priority model access',
-                  'Extended context (200k)',
-                  'Early feature access',
-                ].map(item => (
-                  <li key={item} className="flex items-baseline gap-3">
-                    <span className="font-mono text-[9px]" style={{ color: AMBER }}>—</span>
-                    <span className="font-mono text-[10.5px]" style={{ color: '#8a7e6e' }}>{item}</span>
-                  </li>
-                ))}
-              </ul>
-              <span
-                className="inline-block font-mono text-[11px] px-5 py-2.5 cursor-not-allowed"
-                style={{ border: `1px solid ${BORDER}`, color: '#3a3228' }}
-              >
-                Coming soon
-              </span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── footer ──────────────────────────────────────────────────────── */}
-      <footer
-        className="px-6 sm:px-12 py-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
-        style={{ borderTop: `1px solid ${BORDER}` }}
+      {/* ─────────────────────── MANIFESTO ─────────────────────── */}
+      <section
+        ref={addRef(0)}
+        className="feature-hidden"
+        style={{ padding: '16vh 8vw 14vh', borderTop: '1px solid #0d0d0d' }}
       >
-        <span className="font-mono text-[9px] tracking-[0.3em] uppercase" style={{ color: '#221c14' }}>
-          COSMOS
-        </span>
-        <div className="flex items-center gap-5">
-          {['Next.js', 'Supabase', 'OpenRouter'].map((t, i, arr) => (
-            <span key={t} className="flex items-center gap-5">
-              <span className="font-mono text-[9px]" style={{ color: '#2c2418' }}>{t}</span>
-              {i < arr.length - 1 && (
-                <span className="font-mono text-[9px]" style={{ color: '#1a1510' }}>·</span>
-              )}
+        <p className="font-crimson" style={{
+          fontSize:      'clamp(2.2rem, 5.5vw, 5rem)',
+          fontStyle:     'italic',
+          fontWeight:    400,
+          color:         '#fff',
+          lineHeight:    1.15,
+          maxWidth:      '18ch',
+          margin:        0,
+          letterSpacing: '-0.01em',
+        }}>
+          Built for the terminal.{' '}
+          <span style={{ color: '#2a2a2a' }}>Not around it.</span>
+        </p>
+      </section>
+
+      {/* ─────────────────────── FEATURES ──────────────────────── */}
+      <section style={{ borderTop: '1px solid #0d0d0d' }}>
+        {FEATURES.map((f, i) => (
+          <div
+            key={f.n}
+            ref={addRef(i + 1)}
+            className="feature-hidden"
+            style={{
+              display:         'grid',
+              gridTemplateColumns: 'min(5rem, 10vw) 1fr min(40%, 34rem)',
+              gap:             '0 4vw',
+              alignItems:      'start',
+              padding:         '6vh 8vw',
+              borderBottom:    '1px solid #0d0d0d',
+              transitionDelay: `${i * 60}ms`,
+            }}
+          >
+            {/* number */}
+            <span className="font-crimson" style={{ fontSize: '0.85rem', color: '#222', fontStyle: 'italic', paddingTop: '0.6rem' }}>
+              {f.n}
             </span>
-          ))}
+
+            {/* heading */}
+            <h2 className="font-crimson" style={{
+              fontSize:      'clamp(2.4rem, 5vw, 4.8rem)',
+              fontStyle:     'italic',
+              fontWeight:    400,
+              color:         '#fff',
+              margin:        0,
+              lineHeight:    1.05,
+              letterSpacing: '-0.02em',
+            }}>
+              {f.head}
+            </h2>
+
+            {/* body */}
+            <p className="font-crimson" style={{
+              fontSize:   'clamp(0.95rem, 1.3vw, 1.2rem)',
+              fontWeight: 400,
+              color:      '#444',
+              margin:     0,
+              lineHeight: 1.65,
+              paddingTop: '0.5rem',
+            }}>
+              {f.body}
+            </p>
+          </div>
+        ))}
+      </section>
+
+      {/* ────────────────────── SCREENSHOT ─────────────────────── */}
+      <section
+        ref={addRef(FEATURES.length + 1)}
+        className="feature-hidden"
+        style={{ padding: '14vh 8vw', borderTop: '1px solid #0d0d0d' }}
+      >
+        <p className="font-crimson" style={{
+          fontSize:      '0.9rem',
+          fontStyle:     'italic',
+          color:         '#333',
+          margin:        '0 0 3rem',
+          letterSpacing: '0.02em',
+        }}>
+          The conversation interface.
+        </p>
+
+        <div style={{
+          border:       '1px solid #111',
+          overflow:     'hidden',
+          position:     'relative',
+          lineHeight:   0,
+          maxWidth:     '100%',
+        }}>
+          {/* fake terminal chrome */}
+          <div style={{
+            background:   '#0a0a0a',
+            borderBottom: '1px solid #111',
+            padding:      '0.75rem 1rem',
+            display:      'flex',
+            alignItems:   'center',
+            gap:          '0.5rem',
+            lineHeight:   1,
+          }}>
+            {[0,1,2].map(i => (
+              <div key={i} style={{ width: 9, height: 9, borderRadius: '50%', background: '#1a1a1a' }} />
+            ))}
+            <span className="font-crimson" style={{ fontSize: '0.75rem', fontStyle: 'italic', color: '#222', marginLeft: '0.75rem' }}>
+              cosmos — chat
+            </span>
+          </div>
+
+          <Image
+            src="/screenshots/chat.png"
+            alt="Cosmos chat interface"
+            width={1600}
+            height={900}
+            style={{ width: '100%', height: 'auto', display: 'block' }}
+            priority
+          />
         </div>
+      </section>
+
+      {/* ──────────────────────── INSTALL ──────────────────────── */}
+      <section
+        ref={addRef(FEATURES.length + 2)}
+        className="feature-hidden"
+        style={{
+          padding:       '14vh 8vw',
+          borderTop:     '1px solid #0d0d0d',
+          display:       'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap:           '6vw',
+          alignItems:    'center',
+        }}
+      >
+        {/* left: copy */}
+        <div>
+          <h2 className="font-crimson" style={{
+            fontSize:      'clamp(2rem, 4.5vw, 4rem)',
+            fontStyle:     'italic',
+            fontWeight:    400,
+            color:         '#fff',
+            margin:        '0 0 1.5rem',
+            lineHeight:    1.1,
+            letterSpacing: '-0.02em',
+          }}>
+            Up and running in thirty seconds.
+          </h2>
+          <p className="font-crimson" style={{ fontSize: '1.1rem', color: '#444', margin: '0 0 2.5rem', lineHeight: 1.65, maxWidth: '28rem' }}>
+            Install via pip, sign in, and you're talking to twenty-five models before your coffee cools.
+          </p>
+          <Link
+            href="/signup"
+            className="font-crimson"
+            style={{ fontSize: '1.15rem', color: '#fff', textDecoration: 'none', borderBottom: '1px solid #333', paddingBottom: '2px', transition: 'border-color 0.2s' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = '#fff' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = '#333' }}
+          >
+            Create an account →
+          </Link>
+        </div>
+
+        {/* right: terminal */}
+        <div style={{ border: '1px solid #111', overflow: 'hidden' }}>
+          <div style={{
+            background:   '#0a0a0a',
+            borderBottom: '1px solid #111',
+            padding:      '0.75rem 1rem',
+            display:      'flex',
+            alignItems:   'center',
+            gap:          '0.5rem',
+          }}>
+            {[0,1,2].map(i => (
+              <div key={i} style={{ width: 9, height: 9, borderRadius: '50%', background: '#1a1a1a' }} />
+            ))}
+          </div>
+
+          <div style={{ background: '#050505', padding: '2rem 1.75rem', fontFamily: 'var(--font-jetbrains)', fontSize: '0.8rem', lineHeight: 2 }}>
+            <div>
+              <span style={{ color: '#333' }}>$ </span>
+              <span style={{ color: '#888' }}>pip install cosmos-ai</span>
+            </div>
+            <div style={{ color: '#222', paddingLeft: '1rem' }}>
+              Successfully installed cosmos-ai
+            </div>
+            <div style={{ marginTop: '0.25rem' }}>
+              <span style={{ color: '#333' }}>$ </span>
+              <span style={{ color: '#888' }}>cosmos</span>
+            </div>
+            <div style={{ color: '#2a2a2a', paddingLeft: '1rem' }}>
+              ✓ Authenticated<br />
+              ✓ Loading history...<br />
+              <span style={{ color: '#444' }}>Welcome back.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ──────────────────────── FOOTER ───────────────────────── */}
+      <footer style={{
+        borderTop:      '1px solid #0d0d0d',
+        padding:        '3rem 8vw',
+        display:        'flex',
+        justifyContent: 'space-between',
+        alignItems:     'center',
+        flexWrap:       'wrap',
+        gap:            '1rem',
+      }}>
+        <span className="font-gloock" style={{ fontSize: '1rem', color: '#1a1a1a', letterSpacing: '-0.01em' }}>
+          Cosmos
+        </span>
+        <div style={{ display: 'flex', gap: '2rem' }}>
+          <Link href="/login" className="font-crimson" style={{ fontSize: '0.9rem', fontStyle: 'italic', color: '#222', textDecoration: 'none' }}>
+            Login
+          </Link>
+          <Link href="/signup" className="font-crimson" style={{ fontSize: '0.9rem', fontStyle: 'italic', color: '#222', textDecoration: 'none' }}>
+            Sign up
+          </Link>
+          <a href="https://github.com/Sharann-del/Cosmos" target="_blank" rel="noopener noreferrer" className="font-crimson" style={{ fontSize: '0.9rem', fontStyle: 'italic', color: '#222', textDecoration: 'none' }}>
+            GitHub
+          </a>
+        </div>
+        <span className="font-crimson" style={{ fontSize: '0.9rem', fontStyle: 'italic', color: '#1a1a1a' }}>
+          Built for the terminal.
+        </span>
       </footer>
-    </div>
-  )
-}
 
-// ─── small helpers ───────────────────────────────────────────────────────────
-function Label({ children }: { children: string }) {
-  return (
-    <p className="font-mono text-[9px] tracking-[0.3em] uppercase" style={{ color: '#3a3228' }}>
-      {children}
-    </p>
-  )
-}
-
-function Line({ prompt, cmd }: { prompt: string; cmd: string }) {
-  return (
-    <div className="font-mono text-xs flex items-center gap-2">
-      <span style={{ color: AMBER }}>{prompt}</span>
-      <span style={{ color: '#8a7e6e' }}>{cmd}</span>
-    </div>
-  )
-}
-
-function Ghost({ text, amber }: { text: string; amber?: boolean }) {
-  return (
-    <div className="font-mono text-[10px]" style={{ color: amber ? `${AMBER}99` : '#2c2418' }}>
-      {text}
     </div>
   )
 }
