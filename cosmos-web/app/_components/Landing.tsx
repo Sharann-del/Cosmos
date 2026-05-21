@@ -152,10 +152,10 @@ export default function Landing() {
           height:        '24vw',
           background:    `radial-gradient(
             ellipse 80% 100% at 50% 100%,
-            rgba(110, 20, 255, 0.88) 0%,
-            rgba(20,  80, 255, 0.60) 32%,
-            rgba(0,  190, 255, 0.30) 62%,
-            transparent 85%
+            rgba(220, 220, 220, 0.75) 0%,
+            rgba(180, 180, 180, 0.45) 35%,
+            rgba(120, 120, 120, 0.20) 65%,
+            transparent 88%
           )`,
           mixBlendMode:  'screen',
           pointerEvents: 'none',
@@ -163,7 +163,7 @@ export default function Landing() {
         }} />
 
         <video
-          src="/screenshots/animation.mov"
+          src="/screenshots/animation.mp4"
           autoPlay
           muted
           loop
@@ -180,10 +180,10 @@ export default function Landing() {
           height:        '24vw',
           background:    `radial-gradient(
             ellipse 80% 100% at 50% 0%,
-            rgba(110, 20, 255, 0.88) 0%,
-            rgba(20,  80, 255, 0.60) 32%,
-            rgba(0,  190, 255, 0.30) 62%,
-            transparent 85%
+            rgba(220, 220, 220, 0.75) 0%,
+            rgba(180, 180, 180, 0.45) 35%,
+            rgba(120, 120, 120, 0.20) 65%,
+            transparent 88%
           )`,
           mixBlendMode:  'screen',
           pointerEvents: 'none',

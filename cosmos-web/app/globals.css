@@ -143,6 +143,16 @@ html {
   }
 }
 
+/* ── auth page cosmos drift ───────────────────────────────────────────────── */
+@keyframes authCosmosIn {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+@keyframes authCosmosFloat {
+  0%, 100% { transform: translateY(0px);  }
+  50%       { transform: translateY(-8px); }
+}
+
 /* ── feature reveal ───────────────────────────────────────────────────────── */
 .feature-hidden {
   opacity: 0;

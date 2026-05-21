@@ -41,89 +41,156 @@ export default async function DashboardPage() {
 
   const chatList: Chat[] = chats ?? []
   const folderList: Folder[] = folders ?? []
+  const displayName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'there'
 
   return (
-    <div style={{ minHeight: '100vh', background: '#000', color: '#fff' }}>
+    <div style={{ minHeight: '100vh', background: '#0d0d0d', color: '#fff' }}>
 
       {/* nav */}
-      <nav style={{ padding: '1.75rem 3rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #0d0d0d' }}>
-        <Link href="/" className="font-gloock" style={{ fontSize: '1.3rem', color: '#fff', textDecoration: 'none', letterSpacing: '-0.02em' }}>
+      <nav style={{
+        padding: '1.5rem 3rem',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        borderBottom: '1px solid #161616',
+      }}>
+        <Link href="/" className="font-gloock" style={{
+          fontSize: '1.5rem',
+          color: '#fff',
+          textDecoration: 'none',
+          letterSpacing: '-0.02em',
+        }}>
           Cosmos
         </Link>
         <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-          <span className="font-crimson" style={{ fontSize: '0.95rem', color: '#2a2a2a' }}>
+          <span className="font-crimson" style={{ fontSize: '1rem', color: '#2a2a2a' }}>
             {user.email}
           </span>
           <SignOutButton />
         </div>
       </nav>
 
-      <main style={{ maxWidth: '56rem', margin: '0 auto', padding: '6vh 3rem 12vh' }}>
+      <main style={{ maxWidth: '52rem', margin: '0 auto', padding: '8vh 3rem 16vh' }}>
+
+        {/* greeting */}
+        <div style={{ marginBottom: '8vh' }}>
+          <h1 className="font-gloock" style={{
+            fontSize: 'clamp(2.8rem, 6vw, 5rem)',
+            fontWeight: 400,
+            color: '#fff',
+            margin: '0 0 0.6rem',
+            letterSpacing: '-0.03em',
+            lineHeight: 1,
+          }}>
+            Hello, {displayName}.
+          </h1>
+          <p className="font-crimson" style={{
+            fontSize: 'clamp(1.1rem, 2vw, 1.3rem)',
+            color: '#333',
+            margin: 0,
+          }}>
+            {chatList.length === 0
+              ? 'No conversations yet. Open Cosmos in your terminal to start.'
+              : `${chatList.length} ${chatList.length === 1 ? 'conversation' : 'conversations'} synced.`}
+          </p>
+        </div>
 
         {/* chats */}
-        <section style={{ marginBottom: '6vh' }}>
-          <div style={{ marginBottom: '1.5rem' }}>
-            <h1 className="font-crimson" style={{ fontSize: 'clamp(1.8rem, 3vw, 2.4rem)', fontWeight: 400, color: '#fff', margin: '0 0 0.3rem', letterSpacing: '-0.01em' }}>
-              Chats
-            </h1>
-            <p className="font-crimson" style={{ fontSize: '1rem', color: '#333', margin: 0 }}>
-              {chatList.length} {chatList.length === 1 ? 'conversation' : 'conversations'}
+        {chatList.length > 0 && (
+          <section style={{ marginBottom: '8vh' }}>
+            <p className="font-crimson" style={{
+              fontSize: '0.8rem',
+              color: '#2a2a2a',
+              letterSpacing: '0.12em',
+              textTransform: 'uppercase',
+              margin: '0 0 1.25rem',
+            }}>
+              Recent chats
             </p>
-          </div>
 
-          {chatList.length === 0 ? (
-            <div style={{ padding: '3rem 0', borderTop: '1px solid #0d0d0d', borderBottom: '1px solid #0d0d0d' }}>
-              <p className="font-crimson" style={{ fontSize: '1rem', color: '#2a2a2a', margin: 0 }}>
-                No chats yet. Open Cosmos in your terminal to get started.
-              </p>
-            </div>
-          ) : (
-            <div style={{ borderTop: '1px solid #0d0d0d' }}>
+            <div style={{ borderTop: '1px solid #161616' }}>
               {chatList.map((chat) => (
                 <div
                   key={chat.id}
-                  style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '2rem', alignItems: 'center', padding: '1rem 0', borderBottom: '1px solid #0d0d0d' }}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr auto',
+                    alignItems: 'baseline',
+                    gap: '2rem',
+                    padding: '1.25rem 0',
+                    borderBottom: '1px solid #161616',
+                  }}
                 >
-                  <span className="font-crimson" style={{ fontSize: '1.05rem', color: '#ccc', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <span className="font-crimson" style={{
+                    fontSize: 'clamp(1.1rem, 2vw, 1.35rem)',
+                    color: '#bbb',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    lineHeight: 1.3,
+                  }}>
                     {chat.title || 'Untitled chat'}
                   </span>
-                  <span className="font-crimson" style={{ fontSize: '0.9rem', color: '#2a2a2a', whiteSpace: 'nowrap' }}>
+                  <span className="font-crimson" style={{
+                    fontSize: '0.9rem',
+                    color: '#2a2a2a',
+                    whiteSpace: 'nowrap',
+                  }}>
                     {timeAgo(chat.updated_at)}
                   </span>
                 </div>
               ))}
             </div>
-          )}
-        </section>
+          </section>
+        )}
 
         {/* folders */}
         {folderList.length > 0 && (
           <section>
-            <div style={{ marginBottom: '1.5rem' }}>
-              <h2 className="font-crimson" style={{ fontSize: 'clamp(1.8rem, 3vw, 2.4rem)', fontWeight: 400, color: '#fff', margin: '0 0 0.3rem', letterSpacing: '-0.01em' }}>
-                Folders
-              </h2>
-              <p className="font-crimson" style={{ fontSize: '1rem', color: '#333', margin: 0 }}>
-                {folderList.length} {folderList.length === 1 ? 'folder' : 'folders'}
-              </p>
-            </div>
+            <p className="font-crimson" style={{
+              fontSize: '0.8rem',
+              color: '#2a2a2a',
+              letterSpacing: '0.12em',
+              textTransform: 'uppercase',
+              margin: '0 0 1.25rem',
+            }}>
+              Folders
+            </p>
 
-            <div style={{ borderTop: '1px solid #0d0d0d' }}>
+            <div style={{ borderTop: '1px solid #161616' }}>
               {folderList.map((folder) => (
                 <div
                   key={folder.id}
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1rem 0', borderBottom: '1px solid #0d0d0d' }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1rem',
+                    padding: '1.25rem 0',
+                    borderBottom: '1px solid #161616',
+                  }}
                 >
-                  <span className="font-crimson" style={{ fontSize: '0.8rem', color: '#222' }}>
+                  <span style={{ fontSize: '0.75rem', color: '#222' }}>
                     {folder.parent_id ? '↳' : '▸'}
                   </span>
-                  <span className="font-crimson" style={{ fontSize: '1.05rem', color: '#ccc' }}>
+                  <span className="font-crimson" style={{
+                    fontSize: 'clamp(1.1rem, 2vw, 1.35rem)',
+                    color: '#bbb',
+                  }}>
                     {folder.name}
                   </span>
                 </div>
               ))}
             </div>
           </section>
+        )}
+
+        {/* empty state */}
+        {chatList.length === 0 && (
+          <div style={{ borderTop: '1px solid #161616', paddingTop: '3rem' }}>
+            <p className="font-crimson" style={{ fontSize: '1rem', color: '#1e1e1e', margin: 0 }}>
+              pip install cosmos-ai · cosmos
+            </p>
+          </div>
         )}
 
       </main>

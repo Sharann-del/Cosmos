@@ -25,7 +25,6 @@ export default function SignupPage() {
         options: { data: { full_name: fullName.trim() } },
       });
       if (signUpError) { setError(signUpError.message); return; }
-
       if (data.user) {
         await supabase.from("user_settings").insert({
           user_id: data.user.id,
@@ -33,148 +32,112 @@ export default function SignupPage() {
           openrouter_api_key: apiKey.trim(),
         });
       }
-
       setVerified(true);
     } catch {
-      setError("An unexpected error occurred. Please try again.");
+      setError("An unexpected error occurred.");
     } finally {
       setLoading(false);
     }
   }
 
-  if (verified) {
-    return (
-      <div style={{ minHeight: "100vh", background: "#000", color: "#fff", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "2rem" }}>
-        <Link href="/" className="font-gloock" style={{ fontSize: "clamp(2rem, 6vw, 3.5rem)", color: "#fff", textDecoration: "none", letterSpacing: "-0.02em", marginBottom: "3.5rem", display: "block" }}>
-          Cosmos
+  const panel = (
+    <div style={{
+      minHeight: "100vh",
+      width: "100%",
+      background: "#111",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "2rem",
+    }}>
+      <div style={{ width: "100%", maxWidth: "26rem" }}>
+        <h1 className="font-crimson" style={{ fontSize: "1.9rem", fontWeight: 400, color: "#e8e8e8", margin: "0 0 0.3rem", letterSpacing: "-0.01em" }}>
+          Check your email.
+        </h1>
+        <p className="font-crimson" style={{ fontSize: "1.05rem", color: "#444", margin: "0 0 2.5rem", lineHeight: 1.7 }}>
+          We sent a link to <span style={{ color: "#777" }}>{email}</span>. Click it to activate your account.
+        </p>
+        <Link href="/login" className="font-crimson" style={{ fontSize: "0.95rem", color: "#555", textDecoration: "none", borderBottom: "1px solid #2a2a2a" }}>
+          Back to log in
         </Link>
-        <div style={{ width: "100%", maxWidth: "22rem", textAlign: "center" }}>
-          <h1 className="font-crimson" style={{ fontSize: "1.6rem", fontWeight: 400, color: "#fff", margin: "0 0 1rem" }}>
-            Check your email.
-          </h1>
-          <p className="font-crimson" style={{ fontSize: "1.05rem", color: "#555", margin: "0 0 2rem", lineHeight: 1.6 }}>
-            We sent a verification link to <span style={{ color: "#888" }}>{email}</span>. Click it to activate your account.
-          </p>
-          <Link href="/login" className="font-crimson" style={{ fontSize: "0.95rem", color: "#444", textDecoration: "none", borderBottom: "1px solid #222" }}>
-            Back to log in
-          </Link>
-        </div>
       </div>
-    );
-  }
+    </div>
+  );
+
+  if (verified) return panel;
 
   return (
-    <div style={{ minHeight: "100vh", background: "#000", color: "#fff", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "2rem" }}>
+    <div style={{
+      minHeight: "100vh",
+      width: "100%",
+      background: "#111",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "2rem",
+    }}>
+      <div style={{ width: "100%", maxWidth: "26rem" }}>
 
-      <Link href="/" className="font-gloock" style={{ fontSize: "clamp(2rem, 6vw, 3.5rem)", color: "#fff", textDecoration: "none", letterSpacing: "-0.02em", marginBottom: "3.5rem", display: "block" }}>
-        Cosmos
-      </Link>
-
-      <div style={{ width: "100%", maxWidth: "22rem" }}>
-        <h1 className="font-crimson" style={{ fontSize: "1.6rem", fontWeight: 400, color: "#fff", margin: "0 0 0.4rem" }}>
+        <h1 className="font-crimson" style={{ fontSize: "1.9rem", fontWeight: 400, color: "#e8e8e8", margin: "0 0 0.3rem", letterSpacing: "-0.01em" }}>
           Create an account.
         </h1>
-        <p className="font-crimson" style={{ fontSize: "1rem", color: "#333", margin: "0 0 2.5rem" }}>
+        <p className="font-crimson" style={{ fontSize: "1.05rem", color: "#444", margin: "0 0 2.5rem" }}>
           Free forever. No credit card.
         </p>
 
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-          <div>
-            <label className="font-crimson" style={{ display: "block", fontSize: "0.9rem", color: "#444", marginBottom: "0.4rem" }} htmlFor="fullName">
-              Full name
-            </label>
-            <input
-              id="fullName"
-              type="text"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              required
-              autoComplete="name"
-              placeholder="Jane Smith"
-              style={{ width: "100%", background: "#080808", border: "1px solid #111", padding: "0.65rem 0.85rem", color: "#fff", fontSize: "1rem", fontFamily: "var(--font-crimson)", outline: "none", boxSizing: "border-box" }}
-              onFocus={e => { e.currentTarget.style.borderColor = "#333" }}
-              onBlur={e => { e.currentTarget.style.borderColor = "#111" }}
-            />
-          </div>
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.4rem" }}>
+          {[
+            { id: "fullName", label: "Full name", type: "text", value: fullName, set: setFullName, placeholder: "Jane Smith", auto: "name" },
+            { id: "email",    label: "Email",     type: "email", value: email, set: setEmail, placeholder: "you@example.com", auto: "email" },
+            { id: "password", label: "Password",  type: "password", value: password, set: setPassword, placeholder: "••••••••", auto: "new-password" },
+          ].map(f => (
+            <div key={f.id}>
+              <label className="font-crimson" htmlFor={f.id} style={{ display: "block", fontSize: "0.9rem", color: "#555", marginBottom: "0.45rem" }}>
+                {f.label}
+              </label>
+              <input
+                id={f.id} type={f.type} value={f.value} required
+                autoComplete={f.auto} placeholder={f.placeholder}
+                onChange={e => f.set(e.target.value)}
+                style={{ width: "100%", background: "#1a1a1a", border: "1px solid #222", padding: "0.8rem 1rem", color: "#fff", fontSize: "1rem", fontFamily: "var(--font-crimson)", outline: "none", boxSizing: "border-box", borderRadius: "2px" }}
+                onFocus={e => { e.currentTarget.style.borderColor = "#444" }}
+                onBlur={e => { e.currentTarget.style.borderColor = "#222" }}
+              />
+            </div>
+          ))}
 
           <div>
-            <label className="font-crimson" style={{ display: "block", fontSize: "0.9rem", color: "#444", marginBottom: "0.4rem" }} htmlFor="email">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-              placeholder="you@example.com"
-              style={{ width: "100%", background: "#080808", border: "1px solid #111", padding: "0.65rem 0.85rem", color: "#fff", fontSize: "1rem", fontFamily: "var(--font-crimson)", outline: "none", boxSizing: "border-box" }}
-              onFocus={e => { e.currentTarget.style.borderColor = "#333" }}
-              onBlur={e => { e.currentTarget.style.borderColor = "#111" }}
-            />
-          </div>
-
-          <div>
-            <label className="font-crimson" style={{ display: "block", fontSize: "0.9rem", color: "#444", marginBottom: "0.4rem" }} htmlFor="password">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="new-password"
-              placeholder="••••••••"
-              style={{ width: "100%", background: "#080808", border: "1px solid #111", padding: "0.65rem 0.85rem", color: "#fff", fontSize: "1rem", fontFamily: "var(--font-crimson)", outline: "none", boxSizing: "border-box" }}
-              onFocus={e => { e.currentTarget.style.borderColor = "#333" }}
-              onBlur={e => { e.currentTarget.style.borderColor = "#111" }}
-            />
-          </div>
-
-          <div>
-            <label className="font-crimson" style={{ display: "block", fontSize: "0.9rem", color: "#444", marginBottom: "0.4rem" }} htmlFor="apiKey">
+            <label className="font-crimson" htmlFor="apiKey" style={{ display: "block", fontSize: "0.9rem", color: "#555", marginBottom: "0.45rem" }}>
               OpenRouter API key
             </label>
             <input
-              id="apiKey"
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              required
-              autoComplete="off"
-              placeholder="sk-or-..."
-              style={{ width: "100%", background: "#080808", border: "1px solid #111", padding: "0.65rem 0.85rem", color: "#fff", fontSize: "1rem", fontFamily: "var(--font-crimson)", outline: "none", boxSizing: "border-box" }}
-              onFocus={e => { e.currentTarget.style.borderColor = "#333" }}
-              onBlur={e => { e.currentTarget.style.borderColor = "#111" }}
+              id="apiKey" type="password" value={apiKey} required
+              autoComplete="off" placeholder="sk-or-..."
+              onChange={e => setApiKey(e.target.value)}
+              style={{ width: "100%", background: "#1a1a1a", border: "1px solid #222", padding: "0.8rem 1rem", color: "#fff", fontSize: "1rem", fontFamily: "var(--font-crimson)", outline: "none", boxSizing: "border-box", borderRadius: "2px" }}
+              onFocus={e => { e.currentTarget.style.borderColor = "#444" }}
+              onBlur={e => { e.currentTarget.style.borderColor = "#222" }}
             />
-            <p className="font-crimson" style={{ fontSize: "0.82rem", color: "#2a2a2a", margin: "0.4rem 0 0" }}>
+            <p className="font-crimson" style={{ fontSize: "0.82rem", color: "#333", margin: "0.4rem 0 0" }}>
               Get your free key at openrouter.ai/keys
             </p>
           </div>
 
           {error && (
-            <p className="font-crimson" style={{ fontSize: "0.9rem", color: "#666", margin: 0 }}>
-              {error}
-            </p>
+            <p className="font-crimson" style={{ fontSize: "0.95rem", color: "#884444", margin: 0 }}>{error}</p>
           )}
 
           <button
-            type="submit"
-            disabled={loading}
-            className="font-crimson"
-            style={{ width: "100%", background: "transparent", border: "1px solid #222", padding: "0.7rem", color: loading ? "#333" : "#fff", fontSize: "1rem", cursor: loading ? "not-allowed" : "pointer", transition: "border-color 0.2s, color 0.2s", marginTop: "0.25rem" }}
-            onMouseEnter={e => { if (!loading) e.currentTarget.style.borderColor = "#555" }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = "#222" }}
+            type="submit" disabled={loading} className="font-crimson"
+            style={{ width: "100%", background: "#fff", border: "none", padding: "0.85rem", color: "#000", fontSize: "1rem", fontWeight: 600, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.5 : 1, borderRadius: "2px", transition: "opacity 0.2s", marginTop: "0.25rem" }}
           >
             {loading ? "Creating account…" : "Create account →"}
           </button>
         </form>
 
-        <p className="font-crimson" style={{ fontSize: "0.95rem", color: "#333", marginTop: "2rem" }}>
+        <p className="font-crimson" style={{ fontSize: "0.95rem", color: "#3a3a3a", marginTop: "2rem" }}>
           Already have an account?{" "}
-          <Link href="/login" style={{ color: "#888", textDecoration: "none", borderBottom: "1px solid #222" }}>
+          <Link href="/login" style={{ color: "#777", textDecoration: "none", borderBottom: "1px solid #333" }}>
             Log in
           </Link>
         </p>
