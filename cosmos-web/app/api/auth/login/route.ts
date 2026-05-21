@@ -32,12 +32,18 @@ export async function POST(req: NextRequest) {
     .eq("user_id", userId)
     .single();
 
+  // Fall back to auth metadata full_name if user_settings row missing
+  const fullName =
+    settings?.full_name ||
+    (data.user.user_metadata?.full_name as string | undefined) ||
+    "";
+
   return NextResponse.json({
     token,
     user: {
       id: userId,
       email: data.user.email,
-      full_name: settings?.full_name ?? "",
+      full_name: fullName,
       openrouter_api_key: settings?.openrouter_api_key ?? "",
     },
   });

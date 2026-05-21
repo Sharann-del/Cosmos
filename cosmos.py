@@ -656,11 +656,18 @@ class ModelDropdown(ModalScreen[int | None]):
     }
     """
 
+    def __init__(self, models: list[tuple[str, str]], **kwargs) -> None:
+        super().__init__(**kwargs)
+        self._models = models
+
     def compose(self) -> ComposeResult:
         with Vertical():
             with ListView(id="model-list"):
-                for _, name in FREE_MODELS:
-                    yield ListItem(Label(name))
+                for model_id, name in self._models:
+                    item = ListItem(Label(name))
+                    if model_id == "ollama:---":
+                        item.disabled = True
+                    yield item
 
     def on_mount(self) -> None:
         lv = self.query_one(ListView)
@@ -670,7 +677,9 @@ class ModelDropdown(ModalScreen[int | None]):
         event.stop()
         try:
             label_text = str(event.item.query_one(Label).renderable)
-            for i, (_, name) in enumerate(FREE_MODELS):
+            for i, (mid, name) in enumerate(self._models):
+                if mid == "ollama:---":
+                    continue
                 if name == label_text:
                     self.dismiss(i)
                     return
@@ -1430,7 +1439,7 @@ class RegenerateBar(Horizontal):
     DEFAULT_CSS = """
     RegenerateBar {
         height: 1;
-        background: #000000;
+        background: #111111;
         align: right middle;
         padding: 0 4;
         margin-bottom: 1;
@@ -2304,6 +2313,7 @@ class CosmosApp(App):
         self._stream_worker = None
         self._regen_bar: RegenerateBar | None = None
         self._last_usage_tokens: int | None = None
+        self._ollama_models: list[tuple[str, str]] = []
         # auth / db
         self.user: dict | None = None
         self._access_token: str = ""
@@ -2365,7 +2375,7 @@ class CosmosApp(App):
                             yield Label("", id="attach-label")
                             yield Label("", id="token-usage")
                             with Horizontal(id="right-controls"):
-                                yield Button(FREE_MODELS[0][1], id="model-btn")
+                                yield Button(self._all_models()[0][1], id="model-btn")
                                 yield Button("▶", id="action-btn")
 
     def on_mount(self) -> None:
@@ -2374,6 +2384,37 @@ class CosmosApp(App):
         self._update_chat_title()
         self._update_token_usage()
         self._try_restore_session()
+        self._fetch_ollama_models()
+
+    @work(thread=True)
+    def _fetch_ollama_models(self) -> None:
+        try:
+            with httpx.Client(timeout=3) as client:
+                resp = client.get("http://localhost:11434/api/tags")
+                if resp.status_code == 200:
+                    models = resp.json().get("models", [])
+                    self._ollama_models = [
+                        (f"ollama:{m['name']}", f"⬡ {m['name'].split(':')[0]}")
+                        for m in models
+                    ]
+                    if self._ollama_models:
+                        self.call_from_thread(self._refresh_model_btn)
+        except Exception:
+            pass
+
+    def _refresh_model_btn(self) -> None:
+        try:
+            all_models = self._all_models()
+            idx = self.model_idx
+            if 0 <= idx < len(all_models):
+                self.query_one("#model-btn", Button).label = all_models[idx][1]
+        except Exception:
+            pass
+
+    def _all_models(self) -> list[tuple[str, str]]:
+        if self._ollama_models:
+            return FREE_MODELS + [("ollama:---", "── Local ──")] + self._ollama_models
+        return list(FREE_MODELS)
 
     # ── auth ──────────────────────────────────────────────────────────────────
 
@@ -2384,13 +2425,15 @@ class CosmosApp(App):
             self.app.call_from_thread(self._show_login)
             return
         try:
-            # Validate token by hitting a protected endpoint
+            # Refresh user profile (name, api key) on every startup
             with httpx.Client(timeout=15) as client:
                 resp = client.get(
-                    f"{COSMOS_API_BASE}/chats",
+                    f"{COSMOS_API_BASE}/auth/me",
                     headers={"Authorization": f"Bearer {session['token']}"},
                 )
                 resp.raise_for_status()
+                session["user"] = resp.json()
+                _save_session(session)
             self.app.call_from_thread(self._on_authenticated, session)
         except Exception:
             self.app.call_from_thread(self._show_login)
@@ -3561,17 +3604,41 @@ class CosmosApp(App):
 
     @work
     async def _stream(self, cosmos: CosmosMessage) -> None:
-        primary = FREE_MODELS[self.model_idx]
-        gpt_oss = next((m for m in FREE_MODELS if m[0] == "openai/gpt-oss-120b:free"), None)
-        seen: set[str] = {primary[0]}
-        model_queue = [primary]
-        if gpt_oss and gpt_oss[0] not in seen:
-            model_queue.append(gpt_oss)
-            seen.add(gpt_oss[0])
-        for m in FREE_MODELS:
-            if m[0] not in seen:
-                model_queue.append(m)
-                seen.add(m[0])
+        openrouter_key = (self.user or {}).get("openrouter_api_key") or os.getenv("OPENROUTER_API_KEY", "")
+        if not openrouter_key:
+            msg = "No OpenRouter API key found. Log out and log back in, or set OPENROUTER_API_KEY in your environment."
+            await cosmos.stream_append(msg)
+            self.conversation.append({"role": "assistant", "content": msg})
+            self.is_thinking = False
+            self._stream_worker = None
+            self._stop_dot(cosmos)
+            self._active_cosmos = None
+            self.query_one("#main-input", ChatInput).disabled = False
+            self.query_one("#main-input", ChatInput).focus()
+            self._update_action_btn()
+            self._show_regen_bar()
+            return
+
+        all_models = self._all_models()
+        primary = all_models[self.model_idx] if self.model_idx < len(all_models) else FREE_MODELS[0]
+
+        # Ollama model — single attempt, no fallback queue
+        if primary[0].startswith("ollama:"):
+            ollama_name = primary[0].split(":", 1)[1]
+            model_queue = [(ollama_name, primary[1])]
+            _is_ollama = True
+        else:
+            gpt_oss = next((m for m in FREE_MODELS if m[0] == "openai/gpt-oss-120b:free"), None)
+            seen: set[str] = {primary[0]}
+            model_queue = [primary]
+            if gpt_oss and gpt_oss[0] not in seen:
+                model_queue.append(gpt_oss)
+                seen.add(gpt_oss[0])
+            for m in FREE_MODELS:
+                if m[0] not in seen:
+                    model_queue.append(m)
+                    seen.add(m[0])
+            _is_ollama = False
 
         accumulated = ""
         streaming = True
@@ -3595,13 +3662,19 @@ class CosmosApp(App):
             accumulated = ""
 
             try:
+                if _is_ollama:
+                    req_url = "http://localhost:11434/v1/chat/completions"
+                    req_headers = {"Content-Type": "application/json"}
+                else:
+                    req_url = API_URL
+                    req_headers = {
+                        "Authorization": f"Bearer {openrouter_key}",
+                        "Content-Type": "application/json",
+                    }
                 async with httpx.AsyncClient(timeout=120) as client:
                     async with client.stream(
-                        "POST", API_URL,
-                        headers={
-                            "Authorization": f"Bearer {(self.user or {}).get('openrouter_api_key') or API_KEY}",
-                            "Content-Type": "application/json",
-                        },
+                        "POST", req_url,
+                        headers=req_headers,
                         json={
                             "model": model_id,
                             "messages": self.conversation,
@@ -3769,7 +3842,7 @@ class CosmosApp(App):
             self._update_action_btn()
         elif btn_id == "model-btn":
             event.stop()
-            self.push_screen(ModelDropdown(), self._on_model_selected)
+            self.push_screen(ModelDropdown(self._all_models()), self._on_model_selected)
         elif btn_id == "action-btn":
             event.stop()
             if self.is_thinking:
@@ -3822,8 +3895,14 @@ class CosmosApp(App):
     def _on_model_selected(self, idx: int | None) -> None:
         if idx is None:
             return
+        all_models = self._all_models()
+        if not (0 <= idx < len(all_models)):
+            return
+        model_id = all_models[idx][0]
+        if model_id == "ollama:---":
+            return
         self.model_idx = idx
-        self.query_one("#model-btn", Button).label = FREE_MODELS[idx][1]
+        self.query_one("#model-btn", Button).label = all_models[idx][1]
         self._update_token_usage()
 
     # ── regenerate ────────────────────────────────────────────────────────────
@@ -3885,7 +3964,8 @@ class CosmosApp(App):
     # ── helpers ───────────────────────────────────────────────────────────────
 
     def _context_limit(self) -> int:
-        model_id = FREE_MODELS[self.model_idx][0]
+        all_models = self._all_models()
+        model_id = all_models[self.model_idx][0] if self.model_idx < len(all_models) else FREE_MODELS[0][0]
         return MODEL_CONTEXT_TOKENS.get(model_id, DEFAULT_CONTEXT_TOKENS)
 
     def _conversation_tokens(self, *, extra_assistant: str = "") -> int:
