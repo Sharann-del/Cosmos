@@ -61,8 +61,8 @@ export default async function DashboardPage() {
         }}>
           Cosmos
         </Link>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-          <span className="font-crimson" style={{ fontSize: '1rem', color: '#2a2a2a' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+          <span className="font-crimson dash-email" style={{ fontSize: '0.9rem', color: '#2a2a2a' }}>
             {user.email}
           </span>
           <SignOutButton />

@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
 export default function SignupPage() {
   const [fullName, setFullName] = useState("");
+  useEffect(() => { document.documentElement.style.background = '#111'; return () => { document.documentElement.style.background = '' } }, []);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [apiKey, setApiKey] = useState("");

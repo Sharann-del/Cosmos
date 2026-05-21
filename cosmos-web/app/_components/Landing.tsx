@@ -89,15 +89,15 @@ export default function Landing() {
         </h1>
 
         <p
-          className="font-crimson hero-subtitle"
+          className="font-crimson"
           style={{
-            fontSize:   'clamp(1.1rem, 2vw, 1.4rem)',
+            fontSize:   'clamp(1rem, 3.5vw, 1.4rem)',
             fontStyle:  'normal',
             color:      '#444',
             margin:     '0 0 3.5rem',
-            lineHeight: 1,
-            whiteSpace: 'nowrap',
+            lineHeight: 1.4,
             position:   'relative',
+            maxWidth:   '90vw',
             animationName:           'cosmosEntry',
             animationDuration:       '1.2s',
             animationTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)',

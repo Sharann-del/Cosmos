@@ -207,9 +207,12 @@ html {
     gap: 3rem;
   }
   .dash-nav {
-    padding: 1.25rem 1.5rem;
+    padding: 1rem 1.25rem;
   }
   .dash-main {
-    padding: 5vh 1.5rem 10vh;
+    padding: 5vh 1.25rem 10vh;
+  }
+  .dash-email {
+    display: none;
   }
 }
