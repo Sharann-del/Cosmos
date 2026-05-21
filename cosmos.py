@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import colorsys
 import json
 import math
 import mimetypes
@@ -58,6 +59,9 @@ SIDEBAR_INDENT_COLS = 3
 LABEL_COPY = "copy"
 LABEL_COPIED = "ok!"
 LABEL_REGEN = "retry"
+
+_GLITCH_CHARS = "▓▒░▄▀▌▐╬╪╫╋▕▔╱╲╳"
+_PARTICLE_CHARS = "·∙⋆·∙·∙·"
 
 _ACTION_LABEL_CSS = """
 .action-label {
@@ -1460,11 +1464,11 @@ LOGO = """\
 
 
 class AnimatedLogo(Widget):
-    """COSMOS wordmark with a sweeping brightness wave."""
+    """COSMOS wordmark — greyscale glitch animation."""
 
     DEFAULT_CSS = """
     AnimatedLogo {
-        background: #000000;
+        background: transparent;
         content-align: center middle;
         width: 100%;
         height: auto;
@@ -1474,30 +1478,53 @@ class AnimatedLogo(Widget):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
         self._frame = 0
+        self._glitch_frames = 0
+        self._glitch_map: dict[tuple[int, int], str] = {}
 
     def on_mount(self) -> None:
         self.set_interval(1 / 20, self._tick)
 
     def _tick(self) -> None:
         self._frame += 1
+        if self._glitch_frames > 0:
+            self._glitch_frames -= 1
+            if self._glitch_frames == 0:
+                self._glitch_map.clear()
+        elif random.random() < 0.035:
+            self._trigger_glitch()
         self.refresh()
 
-    def render(self):
-        from rich.text import Text  # rich is a Textual dependency
+    def _trigger_glitch(self) -> None:
         lines = LOGO.split("\n")
-        max_col = max(len(line) for line in lines)
-        result = Text(justify="center")
+        self._glitch_map.clear()
         for i, line in enumerate(lines):
-            for col, char in enumerate(line):
+            for j, ch in enumerate(line):
+                if ch != " " and random.random() < 0.38:
+                    self._glitch_map[(i, j)] = random.choice(_GLITCH_CHARS)
+        self._glitch_frames = random.randint(2, 5)
+
+    def render(self):
+        from rich.text import Text
+
+        lines = LOGO.split("\n")
+        result = Text(justify="center")
+
+        for i, line in enumerate(lines):
+            for j, char in enumerate(line):
                 if char == " ":
                     result.append(" ")
+                    continue
+
+                display_char = self._glitch_map.get((i, j), char)
+                if (i, j) in self._glitch_map:
+                    v = random.randint(80, 200)
+                    result.append(display_char, style=f"#{v:02x}{v:02x}{v:02x}")
                 else:
-                    phase = col / max_col * math.pi * 4 - self._frame * 0.12
-                    brightness = int((math.sin(phase) + 1) / 2 * 185 + 50)
-                    h = f"{brightness:02x}"
-                    result.append(char, style=f"#{h}{h}{h}")
+                    result.append(display_char, style="#ffffff")
+
             if i < len(lines) - 1:
                 result.append("\n")
+
         return result
 
 _COSMOS_THEME = TextAreaTheme(
@@ -1972,7 +1999,7 @@ class CosmosApp(App):
     /* sidebar */
     #sidebar {
         width: 30;
-        background: #000000;
+        background: #222222;
         padding: 0;
         height: 1fr;
         layout: vertical;
@@ -1984,7 +2011,7 @@ class CosmosApp(App):
     #sidebar-brand {
         width: 100%;
         height: 3;
-        background: #000000;
+        background: #222222;
         padding: 0;
         margin: 0;
         align: center middle;
@@ -2015,10 +2042,10 @@ class CosmosApp(App):
         min-height: 1;
         scrollbar-size-vertical: 0;
         scrollbar-size-horizontal: 0;
-        scrollbar-background: #000000;
-        scrollbar-color: #000000;
-        scrollbar-color-hover: #000000;
-        scrollbar-color-active: #000000;
+        scrollbar-background: #222222;
+        scrollbar-color: #222222;
+        scrollbar-color-hover: #222222;
+        scrollbar-color-active: #222222;
     }
     #sidebar-content {
         width: 100%;
@@ -2029,7 +2056,7 @@ class CosmosApp(App):
     #sidebar-profile {
         width: 100%;
         height: 3;
-        background: #141414;
+        background: #222222;
         padding: 0 1;
         margin: 0;
         align: left middle;
@@ -2058,7 +2085,7 @@ class CosmosApp(App):
     #chats-header, #folders-header {
         height: 3;
         width: 100%;
-        background: #000000;
+        background: #222222;
         margin: 0;
         padding: 0 1;
         align: left middle;
@@ -2091,7 +2118,7 @@ class CosmosApp(App):
         color: #eeeeee;
     }
     #folders-panel, #chats-panel {
-        background: #000000;
+        background: #222222;
         height: auto;
         width: 100%;
         padding: 0 2;
@@ -2112,18 +2139,19 @@ class CosmosApp(App):
         width: 1fr;
         height: 100%;
         padding: 0;
+        background: #111111;
     }
     #chat-title-bar {
         width: 100%;
         height: 3;
-        background: #141414;
+        background: #111111;
         padding: 0;
         margin: 0;
     }
     #menu-btn {
         width: 3;
         height: 3;
-        background: #141414;
+        background: #111111;
         color: #888888;
         padding: 0;
         margin: 0 0 0 2;
@@ -2131,12 +2159,12 @@ class CosmosApp(App):
     }
     #menu-btn:hover {
         color: #eeeeee;
-        background: #141414;
+        background: #111111;
     }
     #chat-title {
         width: 1fr;
         height: 3;
-        background: #141414;
+        background: #111111;
         color: #888888;
         padding: 0;
         margin: 0;
@@ -2146,9 +2174,9 @@ class CosmosApp(App):
     }
     /* scroll */
     #scroll {
-        background: #000000;
+        background: #111111;
         height: 1fr;
-        scrollbar-background: #000000;
+        scrollbar-background: #111111;
         scrollbar-color: #2a2a2a;
         scrollbar-color-hover: #555555;
         scrollbar-color-active: #777777;
@@ -2158,7 +2186,7 @@ class CosmosApp(App):
 
     /* messages */
     #messages {
-        background: #000000;
+        background: #111111;
         height: auto;
         min-height: 100%;
         padding: 2 4 1 4;
@@ -2166,19 +2194,19 @@ class CosmosApp(App):
 
     /* home */
     #home-state {
-        background: #000000;
+        background: #111111;
         height: 100%;
         align: center middle;
     }
     #home-logo {
-        background: #000000;
+        background: transparent;
         content-align: center middle;
         width: 100%;
     }
 
     /* input section */
     #input-section {
-        background: #000000;
+        background: #111111;
         height: auto;
         padding: 0;
     }
