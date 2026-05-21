@@ -89,7 +89,7 @@ export default function Landing() {
         </h1>
 
         <p
-          className="font-crimson"
+          className="font-crimson hero-subtitle"
           style={{
             fontSize:   'clamp(1.1rem, 2vw, 1.4rem)',
             fontStyle:  'normal',
@@ -218,19 +218,11 @@ export default function Landing() {
           <div
             key={f.n}
             ref={addRef(i + 1)}
-            className="feature-hidden"
-            style={{
-              display:         'grid',
-              gridTemplateColumns: 'min(5rem, 10vw) 1fr min(40%, 34rem)',
-              gap:             '0 4vw',
-              alignItems:      'start',
-              padding:         '6vh 8vw',
-              borderBottom:    '1px solid #0d0d0d',
-              transitionDelay: `${i * 60}ms`,
-            }}
+            className="feature-hidden feature-row"
+            style={{ transitionDelay: `${i * 60}ms` }}
           >
             {/* number */}
-            <span className="font-crimson" style={{ fontSize: '0.85rem', color: '#222', fontStyle: 'italic', paddingTop: '0.6rem' }}>
+            <span className="font-crimson feature-num" style={{ fontSize: '0.85rem', color: '#222', fontStyle: 'italic', paddingTop: '0.6rem' }}>
               {f.n}
             </span>
 
@@ -317,14 +309,10 @@ export default function Landing() {
       {/* ──────────────────────── INSTALL ──────────────────────── */}
       <section
         ref={addRef(FEATURES.length + 2)}
-        className="feature-hidden"
+        className="feature-hidden install-grid"
         style={{
-          padding:       '14vh 8vw',
-          borderTop:     '1px solid #0d0d0d',
-          display:       'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap:           '6vw',
-          alignItems:    'center',
+          padding:   '14vh 8vw',
+          borderTop: '1px solid #0d0d0d',
         }}
       >
         {/* left: copy */}

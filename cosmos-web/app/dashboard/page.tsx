@@ -47,8 +47,7 @@ export default async function DashboardPage() {
     <div style={{ minHeight: '100vh', background: '#0d0d0d', color: '#fff' }}>
 
       {/* nav */}
-      <nav style={{
-        padding: '1.5rem 3rem',
+      <nav className="dash-nav" style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -70,7 +69,7 @@ export default async function DashboardPage() {
         </div>
       </nav>
 
-      <main style={{ maxWidth: '52rem', margin: '0 auto', padding: '8vh 3rem 16vh' }}>
+      <main className="dash-main" style={{ maxWidth: '52rem', margin: '0 auto' }}>
 
         {/* greeting */}
         <div style={{ marginBottom: '8vh' }}>
