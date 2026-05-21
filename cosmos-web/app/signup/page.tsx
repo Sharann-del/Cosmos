@@ -5,8 +5,10 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
 export default function SignupPage() {
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [apiKey, setApiKey] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [verified, setVerified] = useState(false);
@@ -17,8 +19,21 @@ export default function SignupPage() {
     setLoading(true);
     try {
       const supabase = createClient();
-      const { error: signUpError } = await supabase.auth.signUp({ email, password });
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { full_name: fullName.trim() } },
+      });
       if (signUpError) { setError(signUpError.message); return; }
+
+      if (data.user) {
+        await supabase.from("user_settings").insert({
+          user_id: data.user.id,
+          full_name: fullName.trim(),
+          openrouter_api_key: apiKey.trim(),
+        });
+      }
+
       setVerified(true);
     } catch {
       setError("An unexpected error occurred. Please try again.");
@@ -65,6 +80,24 @@ export default function SignupPage() {
 
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
           <div>
+            <label className="font-crimson" style={{ display: "block", fontSize: "0.9rem", color: "#444", marginBottom: "0.4rem" }} htmlFor="fullName">
+              Full name
+            </label>
+            <input
+              id="fullName"
+              type="text"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              required
+              autoComplete="name"
+              placeholder="Jane Smith"
+              style={{ width: "100%", background: "#080808", border: "1px solid #111", padding: "0.65rem 0.85rem", color: "#fff", fontSize: "1rem", fontFamily: "var(--font-crimson)", outline: "none", boxSizing: "border-box" }}
+              onFocus={e => { e.currentTarget.style.borderColor = "#333" }}
+              onBlur={e => { e.currentTarget.style.borderColor = "#111" }}
+            />
+          </div>
+
+          <div>
             <label className="font-crimson" style={{ display: "block", fontSize: "0.9rem", color: "#444", marginBottom: "0.4rem" }} htmlFor="email">
               Email
             </label>
@@ -98,6 +131,27 @@ export default function SignupPage() {
               onFocus={e => { e.currentTarget.style.borderColor = "#333" }}
               onBlur={e => { e.currentTarget.style.borderColor = "#111" }}
             />
+          </div>
+
+          <div>
+            <label className="font-crimson" style={{ display: "block", fontSize: "0.9rem", color: "#444", marginBottom: "0.4rem" }} htmlFor="apiKey">
+              OpenRouter API key
+            </label>
+            <input
+              id="apiKey"
+              type="password"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              required
+              autoComplete="off"
+              placeholder="sk-or-..."
+              style={{ width: "100%", background: "#080808", border: "1px solid #111", padding: "0.65rem 0.85rem", color: "#fff", fontSize: "1rem", fontFamily: "var(--font-crimson)", outline: "none", boxSizing: "border-box" }}
+              onFocus={e => { e.currentTarget.style.borderColor = "#333" }}
+              onBlur={e => { e.currentTarget.style.borderColor = "#111" }}
+            />
+            <p className="font-crimson" style={{ fontSize: "0.82rem", color: "#2a2a2a", margin: "0.4rem 0 0" }}>
+              Get your free key at openrouter.ai/keys
+            </p>
           </div>
 
           {error && (
