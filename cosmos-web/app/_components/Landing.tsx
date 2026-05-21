@@ -341,7 +341,7 @@ export default function Landing() {
             Up and running in thirty seconds.
           </h2>
           <p className="font-crimson" style={{ fontSize: '1.1rem', color: '#444', margin: '0 0 2.5rem', lineHeight: 1.65, maxWidth: '28rem' }}>
-            Install via pip, sign in, and you're talking to twenty-five models before your coffee cools.
+            Install via pip, sign in, and you&apos;re talking to twenty-five models before your coffee cools.
           </p>
           <Link
             href="/signup"
