@@ -58,7 +58,9 @@ cosmos
 
 Log in once, and you're talking to frontier models in under a minute. Your key, history, and folders sync from the cloud automatically.
 
-> **Why an account instead of a config file?** Because your setup should work on your laptop, your work machine, and that SSH session into a box you'll never see again — without copying secrets around. Sign in, and Cosmos pulls everything down.
+> **Windows:** If `cosmos` is not recognized after install, add your Python Scripts folder to PATH:
+> `C:\Users\<YourName>\AppData\Local\Programs\Python\Python3xx\Scripts`
+> Or run `python -m cosmos` as an alternative.
 
 
 
