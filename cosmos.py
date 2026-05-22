@@ -3591,14 +3591,14 @@ class CosmosApp(App):
 
     # ── send ──────────────────────────────────────────────────────────────────
 
-    def on_chat_input_submitted(self, event: ChatInput.Submitted) -> None:
+    async def on_chat_input_submitted(self, event: ChatInput.Submitted) -> None:
         text = event.value.strip()
         if self.is_thinking:
             return
         if not text and not self.attachment:
             return
         event.input.clear()
-        self._send(text)
+        await self._send(text)
 
     def on_user_message_edit_requested(self, event: UserMessage.EditRequested) -> None:
         if self.is_thinking:
@@ -3623,7 +3623,7 @@ class CosmosApp(App):
         inp.focus()
         self._update_action_btn()
 
-    def _send(self, text: str) -> None:
+    async def _send(self, text: str) -> None:
         self._remove_regen_bar()
         messages = self.query_one("#messages", Vertical)
 
@@ -3633,7 +3633,7 @@ class CosmosApp(App):
             pass
 
         display = attachment_display_text(text, self.attachment)
-        messages.mount(UserMessage(display))
+        await messages.mount(UserMessage(display))
 
         content = build_user_message_content(text, self.attachment)
         self._clear_attachment()
@@ -3644,7 +3644,7 @@ class CosmosApp(App):
             self._upsert_sidebar_chat("New chat")
 
         cosmos = CosmosMessage()
-        messages.mount(cosmos)
+        await messages.mount(cosmos)
         self._active_cosmos = cosmos
 
         self.is_thinking = True
@@ -3963,7 +3963,7 @@ class CosmosApp(App):
                 node = node.parent
             self._close_floating_menu()
 
-    def on_button_pressed(self, event: Button.Pressed) -> None:
+    async def on_button_pressed(self, event: Button.Pressed) -> None:
         btn_id = event.button.id
         if btn_id == "attach-btn":
             event.stop()
@@ -3984,7 +3984,7 @@ class CosmosApp(App):
                 text = inp.text.strip()
                 if text or self.attachment:
                     inp.clear()
-                    self._send(text)
+                    await self._send(text)
 
     @work
     async def _pick_file(self) -> None:
