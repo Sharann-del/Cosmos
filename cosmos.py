@@ -317,47 +317,31 @@ def message_content_for_display(content: str | list[dict]) -> str:
 
 FREE_MODELS: list[tuple[str, str]] = [
     ("openrouter/free",                                    "Auto (Best Free)"),
-    ("arcee-ai/trinity-large-thinking:free",               "Trinity Large Thinking"),
-    ("baidu/cobuddy:free",                                 "CoBuddy"),
-    ("deepseek/deepseek-v4-flash:free",                    "DeepSeek V4 Flash"),
-    ("google/gemma-4-26b-it:free",                         "Gemma 4 26B"),
-    ("google/gemma-4-31b-it:free",                         "Gemma 4 31B"),
-    ("liquid/lfm-2.5-1.2b-instruct:free",                  "LFM 2.5 1.2B"),
-    ("liquid/lfm-2.5-1.2b-thinking:free",                  "LFM 2.5 1.2B Thinking"),
-    ("meta-llama/llama-3.2-3b-instruct:free",              "Llama 3.2 3B"),
-    ("meta-llama/llama-3.3-70b-instruct:free",             "Llama 3.3 70B"),
-    ("minimax/minimax-m2.5:free",                          "MiniMax M2.5"),
-    ("nousresearch/hermes-3-llama-3.1-405b:free",          "Hermes 3 405B"),
-    ("nvidia/nemotron-3-nano-30b-a3b:free",                "Nemotron 3 Nano 30B"),
-    ("nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free", "Nemotron 3 Nano Omni 30B"),
-    ("nvidia/nemotron-3-super-120b-a12b:free",             "Nemotron 3 Super 120B"),
-    ("nvidia/nemotron-nano-12b-v2-vl:free",                "Nemotron Nano 12B VL"),
-    ("nvidia/nemotron-nano-9b-v2:free",                    "Nemotron Nano 9B"),
-    ("openai/gpt-oss-120b:free",                           "GPT OSS 120B"),
-    ("openai/gpt-oss-20b:free",                            "GPT OSS 20B"),
-    ("poolside/laguna-m.1:free",                           "Laguna M.1"),
-    ("poolside/laguna-xs.2:free",                          "Laguna XS.2"),
-    ("qwen/qwen3-coder:free",                              "Qwen3 Coder"),
-    ("qwen/qwen3-next-80b-a3b-instruct:free",              "Qwen3 Next 80B"),
-    ("venice/uncensored:free",                             "Venice Uncensored"),
-    ("z-ai/glm-4.5-air:free",                              "GLM 4.5 Air"),
+    ("openrouter/owl-alpha",                               "Owl Alpha"),
+    ("cognitivecomputations/dolphin-mistral-24b-venice-edition:free", "Dolphin Mistral 24B"),
+    ("liquid/lfm-2.5-1.2b-instruct:free",                 "LFM 2.5 1.2B"),
+    ("nvidia/nemotron-3-nano-30b-a3b:free",               "Nemotron 3 Nano 30B"),
+    ("nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free","Nemotron 3 Nano Omni 30B"),
+    ("nvidia/nemotron-3-super-120b-a12b:free",            "Nemotron 3 Super 120B"),
+    ("nvidia/nemotron-nano-12b-v2-vl:free",               "Nemotron Nano 12B VL"),
+    ("nvidia/nemotron-nano-9b-v2:free",                   "Nemotron Nano 9B"),
+    ("poolside/laguna-m.1:free",                          "Laguna M.1"),
+    ("poolside/laguna-xs.2:free",                         "Laguna XS.2"),
 ]
 
 DEFAULT_CONTEXT_TOKENS = 128_000
 MODEL_CONTEXT_TOKENS: dict[str, int] = {
-    "openrouter/free": 128_000,
-    "meta-llama/llama-3.2-3b-instruct:free": 128_000,
-    "meta-llama/llama-3.3-70b-instruct:free": 128_000,
-    "openai/gpt-oss-20b:free": 128_000,
-    "openai/gpt-oss-120b:free": 128_000,
-    "qwen/qwen3-coder:free": 128_000,
-    "qwen/qwen3-next-80b-a3b-instruct:free": 128_000,
-    "nousresearch/hermes-3-llama-3.1-405b:free": 128_000,
-    "google/gemma-4-26b-it:free": 128_000,
-    "google/gemma-4-31b-it:free": 128_000,
-    "deepseek/deepseek-v4-flash:free": 64_000,
-    "liquid/lfm-2.5-1.2b-instruct:free": 32_768,
-    "liquid/lfm-2.5-1.2b-thinking:free": 32_768,
+    "openrouter/free":                                     200_000,
+    "openrouter/owl-alpha":                                1_000_000,
+    "cognitivecomputations/dolphin-mistral-24b-venice-edition:free": 33_000,
+    "liquid/lfm-2.5-1.2b-instruct:free":                  33_000,
+    "nvidia/nemotron-3-nano-30b-a3b:free":                 256_000,
+    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free":  256_000,
+    "nvidia/nemotron-3-super-120b-a12b:free":              1_000_000,
+    "nvidia/nemotron-nano-12b-v2-vl:free":                 128_000,
+    "nvidia/nemotron-nano-9b-v2:free":                     128_000,
+    "poolside/laguna-m.1:free":                            262_000,
+    "poolside/laguna-xs.2:free":                           262_000,
 }
 
 
@@ -406,12 +390,11 @@ _TITLE_SKIP_WORDS = frozenset({
 })
 
 _TITLE_MODELS = [
-    "openai/gpt-oss-20b:free",
     "openrouter/free",
-    "meta-llama/llama-3.2-3b-instruct:free",
-    "meta-llama/llama-3.3-70b-instruct:free",
-    "qwen/qwen3-coder:free",
-    "deepseek/deepseek-v4-flash:free",
+    "nvidia/nemotron-nano-9b-v2:free",
+    "liquid/lfm-2.5-1.2b-instruct:free",
+    "nvidia/nemotron-nano-12b-v2-vl:free",
+    "poolside/laguna-xs.2:free",
 ]
 
 
@@ -502,7 +485,6 @@ def _save_session(data: dict) -> None:
 class LoginScreen(ModalScreen):
     CSS = """
     LoginScreen {
-        background: #000000;
         align: center middle;
     }
     #login-box {
@@ -551,6 +533,16 @@ class LoginScreen(ModalScreen):
         content-align: center middle;
         margin-top: 1;
     }
+
+    /* light mode */
+    LoginScreen:light #login-box            { background: #ffffff; border: solid #dddddd; }
+    LoginScreen:light #login-title          { color: #333333; }
+    LoginScreen:light #login-email,
+    LoginScreen:light #login-password       { background: #ffffff; color: #1a1a1a; }
+    LoginScreen:light #login-email:focus,
+    LoginScreen:light #login-password:focus { background: #f8f8f8; border: none; }
+    LoginScreen:light #login-btn            { background: #e0e0e0; color: #444444; border: none; }
+    LoginScreen:light #login-btn:hover      { background: #cccccc; color: #111111; }
     """
 
     def compose(self) -> ComposeResult:
@@ -562,6 +554,8 @@ class LoginScreen(ModalScreen):
             yield Label("", id="login-error")
 
     def on_mount(self) -> None:
+        is_dark = "dark" in self.app.pseudo_classes
+        self.styles.background = "#111111" if is_dark else "#f0f0f0"
         self.query_one("#login-email", Input).focus()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
@@ -670,6 +664,7 @@ class ModelDropdown(ModalScreen[int | None]):
                     yield item
 
     def on_mount(self) -> None:
+        self.styles.background = "rgba(0,0,0,0)"
         lv = self.query_one(ListView)
         lv.focus()
 
@@ -1630,11 +1625,19 @@ class AnimatedLogo(Widget):
                     continue
 
                 display_char = self._glitch_map.get((i, j), char)
+                is_dark = "dark" in self.app.pseudo_classes
+                bg = "#111111" if is_dark else "#f5f5f5"
                 if (i, j) in self._glitch_map:
-                    v = random.randint(80, 200)
-                    result.append(display_char, style=f"#{v:02x}{v:02x}{v:02x}")
+                    if is_dark:
+                        v = random.randint(80, 200)
+                        fg = f"#{v:02x}{v:02x}{v:02x}"
+                    else:
+                        v = random.randint(60, 160)
+                        fg = f"#{v:02x}{v:02x}{v:02x}"
+                    result.append(display_char, style=f"{fg} on {bg}")
                 else:
-                    result.append(display_char, style="#ffffff")
+                    fg = "#ffffff" if is_dark else "#333333"
+                    result.append(display_char, style=f"{fg} on {bg}")
 
             if i < len(lines) - 1:
                 result.append("\n")
@@ -1647,6 +1650,14 @@ _COSMOS_THEME = TextAreaTheme(
     cursor_style=Style(color="#1a1a1a", bgcolor="#d0d0d0"),
     cursor_line_style=Style(bgcolor="#1a1a1a"),
     selection_style=Style(bgcolor="#2a2a2a"),
+)
+
+_COSMOS_THEME_LIGHT = TextAreaTheme(
+    name="cosmos-input-light",
+    base_style=Style(color="#1a1a1a", bgcolor="#ffffff"),
+    cursor_style=Style(color="#ffffff", bgcolor="#1a1a1a"),
+    cursor_line_style=Style(bgcolor="#ffffff"),
+    selection_style=Style(bgcolor="#cccccc"),
 )
 
 CHAT_PLACEHOLDER_PROMPTS = (
@@ -1715,6 +1726,7 @@ class ChatInput(TextArea):
 
     def on_mount(self) -> None:
         self.register_theme(_COSMOS_THEME)
+        self.register_theme(_COSMOS_THEME_LIGHT)
         self.theme = "cosmos-input"
         self._start_placeholder_animation()
 
@@ -2071,6 +2083,26 @@ class SidebarScroll(VerticalScroll):
     """
 
 
+def _system_prefers_dark() -> bool:
+    import subprocess, sys
+    try:
+        if sys.platform == "darwin":
+            r = subprocess.run(
+                ["defaults", "read", "-g", "AppleInterfaceStyle"],
+                capture_output=True, text=True, timeout=2,
+            )
+            return r.stdout.strip().lower() == "dark"
+        if sys.platform.startswith("linux"):
+            r = subprocess.run(
+                ["gsettings", "get", "org.gnome.desktop.interface", "color-scheme"],
+                capture_output=True, text=True, timeout=2,
+            )
+            return "dark" in r.stdout.lower()
+    except Exception:
+        pass
+    return True
+
+
 # ── main app ───────────────────────────────────────────────────────────────────
 
 class CosmosApp(App):
@@ -2078,14 +2110,16 @@ class CosmosApp(App):
     Screen {
         background: #000000;
         layers: base overlay;
-        scrollbar-size-vertical: 1;
-        scrollbar-size-horizontal: 1;
+        scrollbar-size-vertical: 0;
+        scrollbar-size-horizontal: 0;
     }
 
     ScrollableContainer, ListView, TextArea, ChatInput {
         scrollbar-size-vertical: 1;
         scrollbar-size-horizontal: 1;
     }
+
+    ModelDropdown { background: rgba(0,0,0,0); }
 
     Button,
     #menu-btn,
@@ -2397,6 +2431,165 @@ class CosmosApp(App):
     #action-btn.thinking  { color: #666666; }
     #action-btn:hover     { background: #1a1a1a; }
     #action-btn:focus     { border: none; background: #1a1a1a; }
+
+    /* theme toggle */
+    #theme-toggle {
+        width: 3;
+        height: 1;
+        background: transparent;
+        color: #555555;
+        padding: 0 1;
+        content-align: center middle;
+    }
+    #theme-toggle:hover { color: #eeeeee; }
+
+    /* ── light mode ──────────────────────────────────────────────── */
+    App:light Screen { background: #ebebeb; }
+
+    App:light #sidebar,
+    App:light #sidebar-brand,
+    App:light #chats-header,
+    App:light #folders-header,
+    App:light #folders-panel,
+    App:light #chats-panel,
+    App:light #sidebar-profile { background: #eaeaea; }
+
+    App:light #sidebar-scroll {
+        scrollbar-background: #eaeaea;
+        scrollbar-color: #eaeaea;
+        scrollbar-color-hover: #eaeaea;
+        scrollbar-color-active: #eaeaea;
+    }
+    App:light #sidebar-brand-dot  { color: #333333; }
+    App:light #sidebar-brand-name { color: #444444; }
+    App:light #sidebar-chats-label,
+    App:light #sidebar-folders-label { color: #555555; }
+    App:light .sidebar-plus        { color: #888888; }
+    App:light .sidebar-plus:hover  { color: #111111; }
+    App:light #sidebar-logout-btn       { color: #888888; }
+    App:light #sidebar-logout-btn:hover { color: #111111; }
+    App:light #sidebar-profile-name     { color: #777777; }
+    App:light #theme-toggle       { color: #888888; }
+    App:light #theme-toggle:hover { color: #111111; }
+
+    App:light SidebarEntryRow #entry-title         { color: #444444; }
+    App:light SidebarEntryRow.-folder #entry-title { color: #333333; }
+    App:light SidebarEntryRow.-empty #entry-title  { color: #888888; }
+    App:light SidebarEntryRow.-hovered             { background: #d8d8d8; }
+    App:light SidebarEntryRow.-hovered #entry-title { color: #111111; }
+
+    App:light #main-content,
+    App:light #chat-title-bar,
+    App:light #chat-title,
+    App:light #scroll,
+    App:light #messages,
+    App:light #home-state,
+    App:light #input-section { background: #f5f5f5; }
+
+    App:light #scroll {
+        scrollbar-background: #f5f5f5;
+        scrollbar-color: #cccccc;
+        scrollbar-color-hover: #aaaaaa;
+        scrollbar-color-active: #888888;
+    }
+    App:light #menu-btn            { background: #f5f5f5; color: #777777; }
+    App:light #menu-btn:hover      { background: #f5f5f5; color: #111111; }
+    App:light #chat-title          { background: #f5f5f5; color: #777777; }
+
+    App:light #input-box           { background: #ffffff; }
+    App:light ChatInput            { background: #ffffff; color: #1a1a1a; scrollbar-background: #ffffff; scrollbar-color: #dddddd; }
+    App:light ChatInput:focus      { background: #ffffff; }
+    App:light ChatInput.-focus     { background: #ffffff; }
+    App:light ChatInput .text-area--placeholder { color: #aaaaaa; }
+
+    App:light #toolbar,
+    App:light #right-controls,
+    App:light #attach-label        { background: #ffffff; }
+    App:light #attach-btn          { background: #ffffff; color: #aaaaaa; }
+    App:light #attach-btn:hover    { background: #ffffff; color: #555555; }
+    App:light #attach-btn:focus    { background: #ffffff; }
+    App:light #token-usage         { background: #ffffff; color: #aaaaaa; }
+    App:light #model-btn           { background: #ffffff; color: #888888; }
+    App:light #model-btn:hover     { background: #ffffff; color: #333333; }
+    App:light #model-btn:focus     { background: #ffffff; }
+    App:light #action-btn          { background: #ffffff; color: #cccccc; }
+    App:light #action-btn.can-send { color: #888888; }
+    App:light #action-btn.thinking { color: #aaaaaa; }
+    App:light #action-btn:hover    { background: #ffffff; }
+    App:light #action-btn:focus    { background: #ffffff; }
+
+    App:light UserMessage         { background: #eeeeee; color: #222222; }
+    App:light UserMessage:hover   { background: #e4e4e4; }
+    App:light UserMessage Static  { color: #222222; }
+
+    App:light CosmosMessage,
+    App:light CosmosMessage #cosmos-header { background: #f5f5f5; }
+    App:light CosmosMessage #cosmos-name   { background: #f5f5f5; color: #cccccc; }
+    App:light CosmosMessage #cosmos-dot    { background: #f5f5f5; color: #cccccc; }
+    App:light CosmosMessage #cosmos-dot.done { color: #aaaaaa; }
+
+    App:light CosmosMessage Markdown,
+    App:light CosmosMessage MarkdownParagraph,
+    App:light CosmosMessage MarkdownH1,
+    App:light CosmosMessage MarkdownH2,
+    App:light CosmosMessage MarkdownH3,
+    App:light CosmosMessage MarkdownH4,
+    App:light CosmosMessage MarkdownH5,
+    App:light CosmosMessage MarkdownH6,
+    App:light CosmosMessage MarkdownBulletListItem,
+    App:light CosmosMessage MarkdownOrderedListItem,
+    App:light CosmosMessage MarkdownHorizontalRule,
+    App:light CosmosMessage MarkdownTable,
+    App:light CosmosMessage MarkdownTableBody,
+    App:light CosmosMessage MarkdownTableRow { background: #f5f5f5; }
+
+    App:light CosmosMessage MarkdownParagraph        { color: #333333; }
+    App:light CosmosMessage MarkdownH1               { color: #111111; }
+    App:light CosmosMessage MarkdownH2               { color: #222222; }
+    App:light CosmosMessage MarkdownH3               { color: #333333; }
+    App:light CosmosMessage MarkdownH4               { color: #444444; }
+    App:light CosmosMessage MarkdownH5,
+    App:light CosmosMessage MarkdownH6               { color: #555555; }
+    App:light CosmosMessage MarkdownBulletListItem,
+    App:light CosmosMessage MarkdownOrderedListItem  { color: #333333; }
+    App:light CosmosMessage MarkdownHorizontalRule   { color: #cccccc; }
+    App:light CosmosMessage MarkdownTableRow         { color: #333333; }
+    App:light CosmosMessage MarkdownCode             { background: #e8e8e8; }
+    App:light CosmosMessage MarkdownFence            { background: #ececec; }
+    App:light CosmosMessage MarkdownTableHead        { background: #e8e8e8; color: #222222; }
+    App:light CosmosMessage MarkdownTH               { background: #e8e8e8; color: #222222; }
+    App:light CosmosMessage MarkdownTD               { color: #333333; }
+    App:light CosmosMessage MarkdownBlockQuote       { background: #ededed; color: #666666; border-left: thick #cccccc; }
+
+    App:light RegenerateBar { background: #f5f5f5; }
+
+    /* model dropdown */
+    App:light ModelDropdown > Vertical        { background: #f0f0f0; border: solid #cccccc; }
+    App:light ModelDropdown ListView          { background: #f0f0f0; scrollbar-color: #f0f0f0; scrollbar-background: #f0f0f0; scrollbar-color-hover: #f0f0f0; scrollbar-color-active: #f0f0f0; }
+    App:light ModelDropdown ListItem          { background: #f0f0f0; }
+    App:light ModelDropdown ListView > ListItem.--highlight { background: #e0e0e0; }
+    App:light ModelDropdown ListItem Label    { color: #555555; }
+    App:light ModelDropdown ListView > ListItem.--highlight Label { color: #111111; }
+
+    /* rename / new-folder input */
+    App:light SidebarEntryRow #entry-rename        { background: #f0f0f0; color: #222222; }
+    App:light SidebarEntryRow #entry-rename:focus  { background: #e8e8e8; border: none; }
+
+    /* context menus */
+    App:light SidebarFloatingMenu,
+    App:light SidebarFolderFloatingMenu             { background: #f0f0f0; border: solid #cccccc; }
+    App:light SidebarFloatingMenu .sidebar-menu-act,
+    App:light SidebarFolderFloatingMenu .sidebar-menu-act { color: #333333; background: transparent; }
+    App:light SidebarFloatingMenu .sidebar-menu-act:hover,
+    App:light SidebarFolderFloatingMenu .sidebar-menu-act:hover { background: #e0e0e0; color: #111111; }
+    App:light SidebarFloatingMenu .sidebar-menu-act.-danger,
+    App:light SidebarFolderFloatingMenu .sidebar-menu-act.-danger { color: #cc4444; }
+    App:light SidebarFloatingMenu .sidebar-menu-act.-danger:hover,
+    App:light SidebarFolderFloatingMenu .sidebar-menu-act.-danger:hover { color: #aa2222; background: #ead8d8; }
+
+    /* suppress Textual's accent focus color on sidebar rows */
+    App:light SidebarEntryRow:focus       { background: transparent; border: none; }
+    App:light SidebarEntryRow.-hovered:focus { background: #d8d8d8; border: none; }
     """
 
     BINDINGS = [
@@ -2463,6 +2656,7 @@ class CosmosApp(App):
                 with Horizontal(id="sidebar-profile"):
                     yield Label("", id="sidebar-profile-name")
                     yield Label("logout", id="sidebar-logout-btn")
+                    yield Label("◑", id="theme-toggle")
             with Vertical(id="main-content"):
                 with Horizontal(id="chat-title-bar"):
                     yield Static("☰", id="menu-btn", markup=False)
@@ -2489,6 +2683,8 @@ class CosmosApp(App):
         self._update_token_usage()
         self._try_restore_session()
         self._fetch_ollama_models()
+        if not _system_prefers_dark():
+            self._toggle_theme()
 
     @work(thread=True)
     def _fetch_ollama_models(self) -> None:
@@ -3251,6 +3447,19 @@ class CosmosApp(App):
             self._expand_folder_branch(folder_id)
         self._refresh_sidebar_lists()
 
+    def notify(self, message: str, *, title: str = "", severity="information", timeout: float | None = None, markup: bool = True) -> None:
+        if message.startswith("Switched to ") and "theme" in message:
+            return
+        super().notify(message, title=title, severity=severity, timeout=timeout, markup=markup)
+
+    def _toggle_theme(self) -> None:
+        self.action_toggle_dark()
+        is_dark = "dark" in self.pseudo_classes
+        self.query_one("#theme-toggle", Label).update("◑" if is_dark else "◐")
+        theme_name = "cosmos-input" if is_dark else "cosmos-input-light"
+        for inp in self.query(ChatInput):
+            inp.theme = theme_name
+
     def _toggle_sidebar(self) -> None:
         sidebar = self.query_one("#sidebar")
         if sidebar.has_class("collapsed"):
@@ -3953,6 +4162,9 @@ class CosmosApp(App):
         elif wid == "sidebar-logout-btn":
             event.stop()
             self._logout()
+        elif wid == "theme-toggle":
+            event.stop()
+            self._toggle_theme()
         elif self.query("#sidebar-floating-menu") or self.query("#sidebar-folder-menu"):
             node = event.widget
             while node is not None:
